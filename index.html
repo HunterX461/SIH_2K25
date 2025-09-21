@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>TourSafe — Secure Access then App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Inter font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    html, body { height: 100%; }
+    body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    .glass { background: rgba(255,255,255,0.06); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.12); }
+    .gauge-ring { transition: background 0.4s ease; }
+    .countdown-overlay { background: rgba(0,0,0,0.6); }
+    .focus-ring:focus { outline: 3px solid rgba(59,130,246,0.7); outline-offset: 2px; }
+    .fade-in { animation: fadeIn 400ms ease both; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px);} to { opacity: 1; transform: translateY(0);} }
+    .link-underline { position: relative; }
+    .link-underline::after{ content:''; position:absolute; left:0; bottom:-2px; width:0; height:2px; background: currentColor; transition: width .2s ease; }
+    .link-underline:hover::after{ width:100%; }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-indigo-900 via-blue-900 to-slate-900 text-slate-100">
+
+  <!-- LOGIN: Step 1 (choose method) -->
+  <section id="loginStepChoose" class="min-h-screen flex items-center justify-center px-4 py-10">
+    <div class="max-w-md w-full">
+      <div class="glass rounded-3xl p-8">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 grid place-items-center font-extrabold">TS</div>
+          <div>
+            <h1 class="text-2xl font-extrabold">TourSafe</h1>
+            <p class="text-slate-300 text-sm">Travel smart and stay safe</p>
+          </div>
+        </div>
+        <p class="text-slate-300 text-sm mb-5">Sign in to continue. Choose a wallet or continue without one.</p>
+
+        <div class="space-y-3">
+          <button id="btnMetaMask" class="w-full flex items-center justify-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-600 px-4 py-3 font-semibold focus-ring">
+            <span>Continue with MetaMask</span>
+          </button>
+          <button id="btnPhantom" class="w-full flex items-center justify-center gap-2 rounded-xl bg-indigo-500 hover:bg-indigo-600 px-4 py-3 font-semibold focus-ring">
+            <span>Continue with Phantom</span>
+          </button>
+          <div class="relative my-3">
+            <div class="h-px bg-white/10"></div>
+            <div class="absolute -top-2 left-1/2 -translate-x-1/2 bg-slate-900 px-3 text-[11px] text-slate-400">or</div>
+          </div>
+          <button id="btnGuest" class="w-full flex items-center justify-center gap-2 rounded-xl bg-slate-700 hover:bg-slate-600 px-4 py-3 font-semibold focus-ring">
+            <span>Continue without wallet</span>
+          </button>
+        </div>
+
+        <div class="mt-5 text-xs text-slate-400 space-y-1">
+          <p>We only use your public address to identify you here.</p>
+          <p>If a wallet isn’t installed, you’ll be guided to install it in a new tab.</p>
+          <p class="opacity-80">Password sign-in isn’t available here.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LOGIN: Step 2 (name + email) -->
+  <section id="loginStepProfile" class="hidden min-h-screen flex items-center justify-center px-4 py-10">
+    <div class="max-w-md w-full">
+      <div class="glass rounded-3xl p-8">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-3">
+            <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 grid place-items-center font-extrabold">TS</div>
+            <div>
+              <h2 class="text-xl font-extrabold">Complete your profile</h2>
+              <p class="text-slate-300 text-sm">Just your name and email</p>
+            </div>
+          </div>
+          <button id="backToChoose" class="text-slate-300 hover:text-white text-sm link-underline">Back</button>
+        </div>
+        <form id="profileLoginForm" class="space-y-3">
+          <div>
+            <label class="text-xs text-slate-300">Full name</label>
+            <input id="loginName" required class="mt-1 w-full bg-slate-900/60 border border-slate-700 rounded-xl px-3 py-2 focus-ring" placeholder="Jane Traveler">
+          </div>
+          <div>
+            <label class="text-xs text-slate-300">Email</label>
+            <input id="loginEmail" type="email" required class="mt-1 w-full bg-slate-900/60 border border-slate-700 rounded-xl px-3 py-2 focus-ring" placeholder="jane@email.com">
+          </div>
+          <button class="w-full rounded-xl bg-blue-600 hover:bg-blue-700 px-4 py-3 font-semibold focus-ring">Continue</button>
+        </form>
+        <p class="text-xs text-slate-400 mt-3">We’ll store this locally (or sync if you enable your backend in Settings).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- APP PAGE -->
+  <div id="appPage" class="hidden">
+    <div class="max-w-7xl mx-auto px-4 py-6 md:py-10">
+      <!-- Header -->
+      <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+        <div>
+          <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight">TourSafe</h1>
+          <p class="text-slate-300 mt-1">ID, itinerary, geofencing, panic assistance, and a live safety score.</p>
+        </div>
+        <div class="flex items-center gap-4">
+          <!-- Safety Score Widget -->
+          <div class="glass rounded-xl p-4 flex items-center gap-4">
+            <div class="relative w-16 h-16">
+              <div id="gaugeRing" class="gauge-ring w-16 h-16 rounded-full"></div>
+              <div class="absolute inset-1 rounded-full bg-slate-900/80 grid place-items-center text-center">
+                <div class="text-lg font-bold" id="safetyScoreValue">--</div>
+                <div class="text-[10px] text-slate-400 -mt-1">Score</div>
+              </div>
+            </div>
+            <div>
+              <div class="text-sm text-slate-300">Safety Status</div>
+              <div id="safetyLabel" class="text-base font-semibold">Calculating…</div>
+            </div>
+          </div>
+          <!-- Live status -->
+          <div id="monitorStatus" class="hidden md:flex items-center gap-2 glass rounded-xl px-4 py-3">
+            <span class="inline-flex h-2.5 w-2.5 rounded-full bg-slate-500" id="monitorDot"></span>
+            <span class="text-sm" id="monitorText">Monitoring off</span>
+          </div>
+          <!-- Auth pill -->
+          <div id="authArea" class="glass rounded-xl px-3 py-2 text-sm"></div>
+        </div>
+      </header>
+
+      <!-- Tabs -->
+      <nav class="glass rounded-2xl p-2 flex flex-wrap gap-2 mb-6">
+        <button data-tab="dashboard" class="tab-btn active bg-blue-500/20 text-blue-200 hover:bg-blue-500/30 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus-ring">Dashboard</button>
+        <button data-tab="profile" class="tab-btn hover:bg-white/10 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus-ring">Tourist ID & Itinerary</button>
+        <button data-tab="geofence" class="tab-btn hover:bg-white/10 rounded-xl px-4 py-2.5 text-sm font-semibold transition focusring">Geo‑fences</button>
+        <button data-tab="settings" class="tab-btn hover:bg-white/10 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus-ring">Settings</button>
+        <span class="ml-auto text-xs text-slate-400 self-center px-2">All data stored locally unless you enable backend sync</span>
+      </nav>
+
+      <!-- Content -->
+      <main>
+        <!-- Dashboard -->
+        <section id="tab-dashboard" class="tab-section fade-in">
+          <div class="grid md:grid-cols-3 gap-6">
+            <!-- Panic + Live -->
+            <div class="md:col-span-1 glass rounded-2xl p-5">
+              <h2 class="text-lg font-bold mb-2">Emergency</h2>
+              <p class="text-sm text-slate-300 mb-4">Press and hold to trigger a help session. You’ll get a quick countdown to cancel.</p>
+              <div class="flex items-center justify-center mb-4">
+                <button id="panicHoldBtn" class="relative group w-40 h-40 rounded-full bg-gradient-to-br from-rose-500 to-red-600 text-white font-extrabold text-xl shadow-lg hover:scale-[1.02] active:scale-100 transition focus-ring select-none">
+                  <span class="absolute inset-0 rounded-full ring-4 ring-rose-400/40 animate-pulse"></span>
+                  <span class="relative z-10">PANIC</span>
+                  <svg class="absolute -bottom-2 -right-2 w-8 h-8 opacity-80" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                    <path d="M12 19l-7-7 7-7M5 12h14" />
+                  </svg>
+                </button>
+              </div>
+              <div id="panicSessionBox" class="hidden">
+                <div class="rounded-xl bg-slate-800/70 p-3 mb-3">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <span class="inline-flex h-2.5 w-2.5 rounded-full bg-rose-500 animate-pulse"></span>
+                      <span class="text-sm font-semibold">Live session</span>
+                    </div>
+                    <span id="panicTimer" class="text-xs text-slate-300">00:00</span>
+                  </div>
+                  <div class="mt-2 text-xs text-slate-300">Location will be attached to your message.</div>
+                </div>
+
+                <div class="grid grid-cols-1 gap-2">
+                  <button id="shareWhatsApp" class="w-full rounded-lg bg-emerald-600 hover:bg-emerald-700 px-4 py-2 font-semibold focus-ring">Share via WhatsApp</button>
+                  <button id="copyEmergency" class="w-full rounded-lg bg-sky-600 hover:bg-sky-700 px-4 py-2 font-semibold focus-ring">Copy emergency text</button>
+                  <button id="stopPanic" class="w-full rounded-lg bg-slate-700 hover:bg-slate-600 px-4 py-2 font-semibold focus-ring">I’m Safe — Stop</button>
+                </div>
+              </div>
+              <div class="text-xs text-slate-400 mt-3">
+                Tip: Add emergency contacts in Tourist ID to prefill messages.
+              </div>
+            </div>
+
+            <!-- Location + Alerts -->
+            <div class="md:col-span-2 glass rounded-2xl p-5">
+              <div class="flex items-center justify-between">
+                <h2 class="text-lg font-bold">Location & Alerts</h2>
+                <div class="flex items-center gap-2">
+                  <button id="startMonitor" class="rounded-lg bg-blue-600 hover:bg-blue-700 px-3.5 py-2 text-sm font-semibold focus-ring">Start monitoring</button>
+                  <button id="stopMonitor" class="rounded-lg bg-slate-700 hover:bg-slate-600 px-3.5 py-2 text-sm font-semibold focus-ring">Stop</button>
+                </div>
+              </div>
+
+              <div class="grid md:grid-cols-2 gap-4 mt-4">
+                <form id="manualLocationForm" class="rounded-xl bg-slate-800/60 p-4">
+                  <div class="flex items-center justify-between mb-2">
+                    <h3 class="font-semibold">Manual Location</h3>
+                    <span id="geoStatus" class="text-xs text-slate-400">Auto: unknown</span>
+                  </div>
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label class="text-xs text-slate-300">Latitude</label>
+                      <input id="latInput" type="number" step="any" required class="mt-1 w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 focus-ring" placeholder="e.g. 25.276987"/>
+                    </div>
+                    <div>
+                      <label class="text-xs text-slate-300">Longitude</label>
+                      <input id="lngInput" type="number" step="any" required class="mt-1 w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 focus-ring" placeholder="e.g. 55.296249"/>
+                    </div>
+                  </div>
+                  <button class="mt-3 w-full rounded-lg bg-slate-700 hover:bg-slate-600 px-3.5 py-2 text-sm font-semibold focus-ring">Update</button>
+                  <p class="text-xs text-slate-400 mt-2">If automatic location isn’t available, use this to keep everything up to date.</p>
+                </form>
+
+                <div class="rounded-xl bg-slate-800/60 p-4">
+                  <h3 class="font-semibold mb-2">Alerts</h3>
+                  <div id="alerts" class="space-y-2 max-h-52 overflow-auto pr-1">
+                    <div class="text-xs text-slate-400">No alerts yet.</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Minimal SVG map -->
+              <div class="mt-4 rounded-xl bg-slate-800/60 p-4">
+                <div class="flex items-center justify-between mb-2">
+                  <h3 class="font-semibold">Map Preview</h3>
+                  <span class="text-xs text-slate-400">Not to scale — for guidance only</span>
+                </div>
+                <div class="w-full h-64 rounded-lg bg-slate-900/70 border border-slate-800 overflow-hidden">
+                  <svg id="miniMap" viewBox="0 0 400 240" class="w-full h-full">
+                    <rect x="0" y="0" width="400" height="240" fill="#0f172a"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Profile & Itinerary -->
+        <section id="tab-profile" class="tab-section hidden fade-in">
+          <div class="grid md:grid-cols-2 gap-6">
+            <form id="profileForm" class="glass rounded-2xl p-5">
+              <h2 class="text-lg font-bold mb-3">Digital Tourist ID</h2>
+              <div class="grid grid-cols-1 gap-3">
+                <div>
+                  <label class="text-xs text-slate-300">Full Name</label>
+                  <input id="name" required class="mt-1 w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 focus-ring" placeholder="Jane Traveler">
+                </div>
+                <div>
+                  <label class="text-xs text-slate-300">Email</label>
+                  <input id="email" type="email" required class="mt-1 w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 focus-ring" placeholder="jane@email.com">
+                </div>
+                <div>
+                  <label class="text-xs text-slate-300">Nationality (ISO 3166-1 code)</label>
+                  <input id="nationality" maxlength="2" required class="mt-1 w-full uppercase bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 focus-ring" placeholder="US">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="text-xs text-slate-300">Passport last 4</label>
+                    <input id="passport4" maxlength="4" required class="mt-1 w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 focus-ring" placeholder="1234">
+                  </div>
+                  <div>
+                    <label class="text-xs text-slate-300">Phone (E.164)</label>
+                    <input id="phone" required class="mt-1 w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 focus-ring" placeholder="+15551234567">
+                  </div>
+                </div>
+                <div>
+                  <label class="text-xs text-slate-300">Emergency Contacts (comma-separated E.164)</label>
+                  <input id="emergencyPhones" class="mt-1 w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 focus-ring" placeholder="+15551234567,+447700900123">
+                </div>
+                <div>
+                  <label class="text-xs text-slate-300">Medical Notes (optional)</label>
+                  <textarea id="medical" class="mt-1 w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 focus-ring" rows="2" placeholder="Allergies, medication…"></textarea>
+                </div>
+              </div>
+              <div class="flex items-center gap-3 mt-4">
+                <button class="rounded-lg bg-blue-600 hover:bg-blue-700 px-4 py-2 font-semibold focus-ring">Save ID</button>
+                <button id="clearProfile" type="button" class="rounded-lg bg-slate-700 hover:bg-slate-600 px-4 py-2 font-semibold focus-ring">Clear</button>
+              </div>
+              <p class="text-xs text-slate-400 mt-3">Data is stored locally in your browser unless backend sync is enabled.</p>
+            </form>
+
+            <div class="glass rounded-2xl p-5">
+              <h2 class="text-lg font-bold mb-3">Itinerary</h2>
+              <form id="itineraryForm" class="rounded-xl bg-slate-800/60 p-3 mb-3">
+                <div class="grid md:grid-cols-6 gap-3">
+                  <div class="md:col-span-2">
+                    <label class="text-xs text-slate-300">Stop Name</label>
+                    <input id="stopName" required class="mt-1 w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 focus-ring" placeholder="Hotel Check-in">
+                  </div>
+                  <div class="md:col-span-2">
+                    <label class="text-xs text-slate-300">Date & Time (UTC)</label>
+                    <input id="stopTime" type="datetime-local" required class="mt-1 w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 focus-ring">
+                  </div>
+                  <div>
+                    <label class="text-xs text-slate-300">Lat</label>
+                    <input id="stopLat" type="number" step="any" required class="mt-1 w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 focus-ring">
+                  </div>
+                  <div>
+                    <label class="text-xs text-slate-300">Lng</label>
+                    <input id="stopLng" type="number" step="any" required class="mt-1 w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 focus-ring">
+                  </div>
+                </div>
+                <button class="mt-3 rounded-lg bg-slate-700 hover:bg-slate-600 px-4 py-2 font-semibold focus-ring">Add Stop</button>
+              </form>
+              <div id="stopsList" class="space-y-2"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Geofences -->
+        <section id="tab-geofence" class="tab-section hidden fade-in">
+          <div class="grid md:grid-cols-2 gap-6">
+            <form id="geofenceForm" class="glass rounded-2xl p-5">
+              <h2 class="text-lg font-bold mb-3">Create Geo‑fence</h2>
+              <div class="grid grid-cols-1 gap-3">
+                <div>
+                  <label class="text-xs text-slate-300">Name</label>
+                  <input id="gfName" required class="mt-1 w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 focus-ring" placeholder="Old Town Zone">
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                  <div>
+                    <label class="text-xs text-slate-300">Lat</label>
+                    <input id="gfLat" type="number" step="any" required class="mt-1 w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 focus-ring">
+                  </div>
+                  <div>
+                    <label class="text-xs text-slate-300">Lng</label>
+                    <input id="gfLng" type="number" step="any" required class="mt-1 w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 focus-ring">
+                  </div>
+                  <div>
+                    <label class="text-xs text-slate-300">Radius (m)</label>
+                    <input id="gfRadius" type="number" min="10" step="10" value="200" required class="mt-1 w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 focus-ring">
+                  </div>
+                </div>
+                <div>
+                  <label class="text-xs text-slate-300">Type</label>
+                  <select id="gfType" class="mt-1 w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 focus-ring">
+                    <option value="safe">Safe</option>
+                    <option value="caution">Caution</option>
+                    <option value="restricted">Restricted</option>
+                  </select>
+                </div>
+              </div>
+              <div class="flex items-center gap-3 mt-4">
+                <button class="rounded-lg bg-blue-600 hover:bg-blue-700 px-4 py-2 font-semibold focus-ring">Add Geo‑fence</button>
+                <button id="clearGeofences" type="button" class="rounded-lg bg-slate-700 hover:bg-slate-600 px-4 py-2 font-semibold focus-ring">Clear All</button>
+              </div>
+              <p class="text-xs text-slate-400 mt-3">Geo‑fence alerts fire on entry/exit when your location updates.</p>
+            </form>
+
+            <div class="glass rounded-2xl p-5">
+              <h2 class="text-lg font-bold mb-3">Zones</h2>
+              <div id="geofenceList" class="space-y-2"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Settings -->
+        <section id="tab-settings" class="tab-section hidden fade-in">
+          <div class="grid lg:grid-cols-2 gap-6">
+            <div class="glass rounded-2xl p-5">
+              <h2 class="text-lg font-bold mb-3">Safety Score Weights</h2>
+              <div class="space-y-3">
+                <div class="grid grid-cols-8 gap-3 items-center">
+                  <label class="col-span-3 text-sm">Zone risk</label>
+                  <input id="wZone" type="range" min="0" max="50" value="35" class="col-span-4">
+                  <span id="wZoneVal" class="col-span-1 text-right text-sm">35</span>
+                </div>
+                <div class="grid grid-cols-8 gap-3 items-center">
+                  <label class="col-span-3 text-sm">Time of day</label>
+                  <input id="wTime" type="range" min="0" max="40" value="20" class="col-span-4">
+                  <span id="wTimeVal" class="col-span-1 text-right text-sm">20</span>
+                </div>
+                <div class="grid grid-cols-8 gap-3 items-center">
+                  <label class="col-span-3 text-sm">Incident density</label>
+                  <input id="wInc" type="range" min="0" max="40" value="15" class="col-span-4">
+                  <span id="wIncVal" class="col-span-1 text-right text-sm">15</span>
+                </div>
+                <div class="grid grid-cols-8 gap-3 items-center">
+                  <label class="col-span-3 text-sm">Movement anomaly</label>
+                  <input id="wMove" type="range" min="0" max="40" value="10" class="col-span-4">
+                  <span id="wMoveVal" class="col-span-1 text-right text-sm">10</span>
+                </div>
+                <div class="grid grid-cols-8 gap-3 items-center">
+                  <label class="col-span-3 text-sm">Weather</label>
+                  <input id="wWx" type="range" min="0" max="40" value="5" class="col-span-4">
+                  <span id="wWxVal" class="col-span-1 text-right text-sm">5</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="glass rounded-2xl p-5">
+              <h2 class="text-lg font-bold mb-3">Backend & Data</h2>
+              <form id="backendForm" class="space-y-3">
+                <div>
+                  <label class="text-xs text-slate-300">Backend Base URL (optional)</label>
+                  <input id="backendUrl" class="mt-1 w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 focus-ring" placeholder="https://api.example.com">
+                </div>
+                <div class="grid md:grid-cols-2 gap-3">
+                  <label class="inline-flex items-center gap-2">
+                    <input id="syncProfile" type="checkbox" class="accent-blue-600">
+                    <span class="text-sm">Sync Tourist ID</span>
+                  </label>
+                  <label class="inline-flex items-center gap-2">
+                    <input id="syncPanic" type="checkbox" class="accent-blue-600">
+                    <span class="text-sm">Sync Panic events</span>
+                  </label>
+                </div>
+                <div class="flex items-center gap-3">
+                  <button class="rounded-lg bg-blue-600 hover:bg-blue-700 px-4 py-2 font-semibold focus-ring">Save</button>
+                  <button id="testBackend" type="button" class="rounded-lg bg-slate-700 hover:bg-slate-600 px-4 py-2 font-semibold focus-ring">Test connection</button>
+                </div>
+              </form>
+
+              <div class="mt-6 rounded-xl bg-slate-800/60 p-4">
+                <h3 class="font-semibold mb-2">Export / Import</h3>
+                <div class="flex flex-wrap items-center gap-3">
+                  <button id="exportData" class="rounded-lg bg-emerald-600 hover:bg-emerald-700 px-4 py-2 font-semibold focus-ring">Export JSON</button>
+                  <label class="rounded-lg bg-slate-700 hover:bg-slate-600 px-4 py-2 font-semibold cursor-pointer focus-ring">
+                    Import JSON
+                    <input id="importFile" type="file" accept="application/json" class="hidden">
+                  </label>
+                  <button id="resetAll" class="rounded-lg bg-rose-600 hover:bg-rose-700 px-4 py-2 font-semibold focus-ring">Erase all data</button>
+                </div>
+                <p class="text-xs text-slate-400 mt-2">Clean data: strict validation, ISO dates, E.164 phones, and unique IDs. Stored locally unless you enable sync.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Notes button -->
+    <div class="fixed bottom-3 right-3">
+      <button id="noteBtn" class="glass rounded-full px-3 py-1.5 text-xs hover:bg-white/10">Notes</button>
+    </div>
+    <div id="notePanel" class="hidden fixed bottom-14 right-3 w-80 glass rounded-xl p-4 text-xs text-slate-300">
+      <div class="font-semibold mb-1">Environment notes</div>
+      <ul class="list-disc pl-5 space-y-1">
+        <li>Automatic location may be blocked by your browser or embedding environment. Manual updates are provided as a fallback.</li>
+        <li>Sharing opens WhatsApp in a new tab with your message prefilled.</li>
+        <li>Backend sync needs a server you control with CORS enabled.</li>
+        <li>Wallet sign-in uses your browser wallet extension. If not present, you’ll be guided to install it.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Countdown overlay -->
+  <div id="countdownOverlay" class="hidden fixed inset-0 z-50 countdown-overlay grid place-items-center p-6">
+    <div class="glass rounded-2xl p-6 max-w-sm w-full text-center">
+      <h3 class="text-xl font-bold mb-2">Sending emergency alert in</h3>
+      <div id="countdownValue" class="text-5xl font-extrabold text-rose-400">5</div>
+      <p class="text-sm text-slate-300 mt-2">Press cancel if this was accidental.</p>
+      <div class="mt-4 flex items-center justify-center gap-3">
+        <button id="cancelCountdown" class="rounded-lg bg-slate-700 hover:bg-slate-600 px-4 py-2 font-semibold focus-ring">Cancel</button>
+        <button id="sendNow" class="rounded-lg bg-rose-600 hover:bg-rose-700 px-4 py-2 font-semibold focus-ring">Send now</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Utilities
+    const $ = (id) => document.getElementById(id);
+    const bySelAll = (sel) => Array.from(document.querySelectorAll(sel));
+    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+    const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
+    const toISO = (dt) => new Date(dt).toISOString();
+    const fromLocal = (k, fallback) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; } catch { return fallback; } };
+    const toLocal = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+    const nowUTC = () => new Date().toISOString();
+    const formatTime = (ms) => { const s = Math.floor(ms/1000), m = Math.floor(s/60), r = s%60; return `${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`; };
+    function haversine(lat1, lon1, lat2, lon2){ const R=6371000, toRad=x=>x*Math.PI/180; const dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1); const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2; return 2*R*Math.asin(Math.sqrt(a)); }
+    function isE164(s){ return /^\+?[1-9]\d{1,14}$/.test((s||'').trim()); }
+    function isEmail(s){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((s||'').trim()); }
+
+    // Global State
+    let auth = fromLocal('auth', null); // { method, address, chain, name, email }
+    const state = {
+      profile: fromLocal('profile', null),
+      itineraries: fromLocal('itineraries', []),
+      geofences: fromLocal('geofences', []),
+      settings: fromLocal('settings', { weights: { zone:35, time:20, inc:15, move:10, wx:5 }, backendUrl:'', syncProfile:false, syncPanic:false }),
+      location: fromLocal('location', { lat:null, lng:null, lastUpdate:null }),
+      monitor: { watchId:null, active:false },
+      score: { value: null, label: 'Unknown' },
+      panic: { active:false, startAt:null, timerInt:null }
+    };
+
+    // Login flow helpers
+    const stepChoose = $('loginStepChoose');
+    const stepProfile = $('loginStepProfile');
+    const appPage = $('appPage');
+
+    function showChoose(){ stepChoose.classList.remove('hidden'); stepProfile.classList.add('hidden'); appPage.classList.add('hidden'); }
+    function showProfile(){ stepChoose.classList.add('hidden'); stepProfile.classList.remove('hidden'); appPage.classList.add('hidden'); }
+    function showApp(){ stepChoose.classList.add('hidden'); stepProfile.classList.add('hidden'); appPage.classList.remove('hidden'); updateAuthUI(); initAppUI(); }
+
+    // Wallet support check
+    const hasMetaMask = () => typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask;
+    const hasPhantom = () => typeof window.solana !== 'undefined' && window.solana.isPhantom;
+
+    // Step 1 actions
+    $('btnMetaMask').addEventListener('click', async ()=>{
+      if(!hasMetaMask()){ window.open('https://metamask.io/download/', '_blank', 'noopener,noreferrer'); return; }
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const address = accounts[0];
+        auth = { method:'metamask', address, chain:'ethereum' };
+        toLocal('auth', auth);
+        showProfile();
+      } catch { alert('MetaMask connection was cancelled.'); }
+    });
+    $('btnPhantom').addEventListener('click', async ()=>{
+      if(!hasPhantom()){ window.open('https://phantom.app/download', '_blank', 'noopener,noreferrer'); return; }
+      try {
+        const resp = await window.solana.connect({ onlyIfTrusted:false });
+        const address = resp.publicKey.toString();
+        auth = { method:'phantom', address, chain:'solana' };
+        toLocal('auth', auth);
+        showProfile();
+      } catch { alert('Phantom connection was cancelled.'); }
+    });
+    $('btnGuest').addEventListener('click', ()=>{
+      auth = { method:'guest', address:'guest', chain:null };
+      toLocal('auth', auth);
+      showProfile();
+    });
+
+    // Step 2 actions (name + email)
+    $('backToChoose').addEventListener('click', ()=> {
+      // Keep wallet choice but let user switch if needed
+      showChoose();
+    });
+    $('profileLoginForm').addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const name = $('loginName').value.trim();
+      const email = $('loginEmail').value.trim();
+      if(!name || !email || !isEmail(email)){
+        alert('Please enter a valid name and email.');
+        return;
+      }
+      // Save into auth and profile
+      auth = { ...(auth||{}), name, email };
+      toLocal('auth', auth);
+      // Merge into profile while preserving existing fields
+      state.profile = { ...(state.profile||{}), id: state.profile?.id || uid(), name, email, updatedAt: nowUTC() };
+      toLocal('profile', state.profile);
+      showApp();
+    });
+
+    // Gate on load
+    if(auth && (auth.method==='guest' || auth.address) && auth.name && auth.email){ showApp(); } else { showChoose(); }
+
+    // Header auth UI
+    function updateAuthUI(){
+      const area = $('authArea');
+      if(!area) return;
+      const labelWallet = auth?.method==='guest' ? 'Guest' : (auth?.address ? auth.address.slice(0,6)+'…'+auth.address.slice(-4) : '—');
+      const displayName = auth?.name ? auth.name : 'Traveler';
+      const displayEmail = auth?.email ? auth.email : '';
+      area.innerHTML = `
+        <div class="flex items-center gap-3">
+          <div class="text-xs">
+            <div class="font-semibold">${displayName}</div>
+            <div class="text-slate-400">${displayEmail}</div>
+          </div>
+          <span class="text-xs font-semibold bg-slate-700 px-2 py-1 rounded">${labelWallet}</span>
+          <button id="logoutBtn" class="rounded bg-slate-700 hover:bg-slate-600 px-2 py-1 text-xs">Logout</button>
+        </div>`;
+      $('logoutBtn').addEventListener('click', ()=>{
+        stopMonitoring();
+        if(state.panic.active) { try { clearInterval(state.panic.timerInt); } catch{}; state.panic.active=false; }
+        auth = null; toLocal('auth', auth);
+        showChoose();
+      });
+    }
+
+    // Tabs
+    const tabBtns = bySelAll('.tab-btn');
+    function showTab(name){
+      bySelAll('.tab-section').forEach(s => s.classList.add('hidden'));
+      const target = $('tab-'+name);
+      if(target) target.classList.remove('hidden');
+      tabBtns.forEach(b => {
+        b.classList.toggle('bg-blue-500/20', b.dataset.tab===name);
+        b.classList.toggle('text-blue-200', b.dataset.tab===name);
+      });
+    }
+    tabBtns.forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+    showTab('dashboard');
+
+    // Alerts + mini helpers
+    const lastPositions = [];
+    function addAlert(kind, text){
+      const wrap = $('alerts'); if(!wrap) return;
+      const el = document.createElement('div');
+      const color = kind==='danger' ? 'bg-rose-500/15 text-rose-200 border-rose-500/30'
+                  : kind==='warn' ? 'bg-amber-500/15 text-amber-200 border-amber-500/30'
+                  : 'bg-emerald-500/15 text-emerald-200 border-emerald-500/30';
+      el.className = `text-sm border rounded-lg px-3 py-2 ${color}`;
+      el.textContent = `${new Date().toLocaleTimeString()} — ${text}`;
+      if(wrap.firstChild?.classList) wrap.insertBefore(el, wrap.firstChild); else wrap.appendChild(el);
+    }
+    function drawMiniMap(){
+      const svg = $('miniMap'); if(!svg) return;
+      while(svg.lastChild) svg.removeChild(svg.lastChild);
+      const bg = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      bg.setAttribute('x','0'); bg.setAttribute('y','0'); bg.setAttribute('width','400'); bg.setAttribute('height','240'); bg.setAttribute('fill','#0f172a');
+      svg.appendChild(bg);
+      const pts = []; state.geofences.forEach(g=>pts.push({lat:g.lat,lng:g.lng}));
+      if(state.location.lat!=null) pts.push({lat:state.location.lat,lng:state.location.lng});
+      let minLat=-1, maxLat=1, minLng=-1, maxLng=1;
+      if(pts.length){ minLat=Math.min(...pts.map(p=>p.lat)); maxLat=Math.max(...pts.map(p=>p.lat)); minLng=Math.min(...pts.map(p=>p.lng)); maxLng=Math.max(...pts.map(p=>p.lng)); }
+      const pad=0.005; minLat-=pad; maxLat+=pad; minLng-=pad; maxLng+=pad;
+      const proj=(lat,lng)=>({ x:((lng-minLng)/(maxLng-minLng||1))*380+10, y:(1-((lat-minLat)/(maxLat-minLat||1)))*200+20 });
+      for(const g of state.geofences){
+        const p=proj(g.lat,g.lng), scale=0.2, r=Math.max(6, Math.min(60, g.radius*scale/50));
+        const color=g.type==='safe'?'#34d399':g.type==='caution'?'#f59e0b':'#ef4444';
+        const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+        c.setAttribute('cx',p.x); c.setAttribute('cy',p.y); c.setAttribute('r',r);
+        c.setAttribute('fill', color+'20'); c.setAttribute('stroke', color); c.setAttribute('stroke-width','1.5'); svg.appendChild(c);
+      }
+      if(state.location.lat!=null){
+        const p=proj(state.location.lat,state.location.lng);
+        const d=document.createElementNS('http://www.w3.org/2000/svg','circle');
+        d.setAttribute('cx',p.x); d.setAttribute('cy',p.y); d.setAttribute('r',5); d.setAttribute('fill','#60a5fa'); svg.appendChild(d);
+      }
+    }
+
+    // Safety score
+    function computeSafetyScore(){
+      const { zone, time, inc, move, wx } = state.settings.weights;
+      let zoneRisk=0;
+      if(state.location.lat!=null && state.geofences.length){
+        let insideRisk=0;
+        for(const g of state.geofences){
+          const d = haversine(state.location.lat, state.location.lng, g.lat, g.lng);
+          if(d<=g.radius){ insideRisk = Math.max(insideRisk, g.type==='safe'?0:g.type==='caution'?40:70); }
+        }
+        zoneRisk = insideRisk;
+      }
+      const hour=new Date().getUTCHours();
+      const timeRisk=(hour>=22||hour<6)?30:(hour>=19&&hour<22)?15:5;
+      const incRisk=state.geofences.filter(g=>g.type==='restricted').length*5;
+      let moveRisk=0;
+      if(lastPositions.length>=2){
+        const a=lastPositions[lastPositions.length-2], b=lastPositions[lastPositions.length-1];
+        const dt=(b.t-a.t)/1000, dist=haversine(a.lat,a.lng,b.lat,b.lng), speedKmh=dt>0?(dist/1000)/(dt/3600):0;
+        moveRisk = speedKmh>130?25:speedKmh>80?10:0;
+      }
+      const wxRisk=5;
+      const total = 100 - (zone*zoneRisk/100 + time*timeRisk/100 + inc*incRisk/100 + move*moveRisk/100 + wx*wxRisk/100);
+      const score = Math.round(Math.max(0, Math.min(100, total)));
+      state.score.value=score;
+      $('safetyScoreValue').textContent=score;
+      $('safetyLabel').textContent = score<50 ? 'High risk' : score<80 ? 'Medium risk' : 'Low risk';
+      const deg=Math.round((score/100)*360);
+      $('gaugeRing').style.background=`conic-gradient(${score<50?'#ef4444':score<80?'#f59e0b':'#22c55e'} ${deg}deg, rgba(255,255,255,0.08) ${deg}deg 360deg)`;
+    }
+
+    // Monitoring
+    function startMonitoring(){
+      const gs=$('geoStatus');
+      if(!('geolocation' in navigator)){ if(gs) gs.textContent='Auto: not supported'; addAlert('warn','Automatic location not available; use Manual.'); return; }
+      try{
+        const id=navigator.geolocation.watchPosition(
+          (pos)=>{ const {latitude,longitude,accuracy}=pos.coords; if(gs) gs.textContent=`Auto: active (±${Math.round(accuracy)}m)`; updateLocation(latitude,longitude); },
+          ()=>{ if(gs) gs.textContent='Auto: denied/unavailable'; addAlert('warn','Location permission denied or unavailable. Use Manual.'); },
+          { enableHighAccuracy:true, maximumAge:5000, timeout:10000 }
+        );
+        state.monitor.watchId=id; state.monitor.active=true;
+        $('monitorStatus').classList.remove('hidden');
+        $('monitorDot').className='inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse';
+        $('monitorText').textContent='Monitoring on';
+      }catch{ if(gs) gs.textContent='Auto: unavailable'; }
+    }
+    function stopMonitoring(){
+      if(state.monitor.watchId!=null){ try{ navigator.geolocation.clearWatch(state.monitor.watchId); }catch{} }
+      state.monitor.watchId=null; state.monitor.active=false;
+      const mt=$('monitorText'); if(mt) mt.textContent='Monitoring off';
+      const md=$('monitorDot'); if(md) md.className='inline-flex h-2.5 w-2.5 rounded-full bg-slate-500';
+    }
+    $('startMonitor')?.addEventListener('click', startMonitoring);
+    $('stopMonitor')?.addEventListener('click', stopMonitoring);
+    $('manualLocationForm')?.addEventListener('submit',(e)=>{
+      e.preventDefault();
+      const lat=parseFloat($('latInput').value), lng=parseFloat($('lngInput').value);
+      if(isNaN(lat)||isNaN(lng)){ alert('Please enter valid latitude and longitude.'); return; }
+      updateLocation(lat,lng);
+      const gs=$('geoStatus'); if(gs) gs.textContent='Manual: updated';
+    });
+    function updateLocation(lat,lng){
+      if(lat==null||lng==null) return;
+      const prev=state.location, same=prev.lat===lat && prev.lng===lng;
+      state.location={lat,lng,lastUpdate:nowUTC()}; toLocal('location', state.location);
+      if(!same){
+        lastPositions.push({lat,lng,t:Date.now()}); if(lastPositions.length>10) lastPositions.shift();
+        drawMiniMap(); computeSafetyScore(); evaluateGeofences(prev);
+      }
+    }
+    function evaluateGeofences(prevLocation){
+      if(!state.geofences.length || state.location.lat==null) return;
+      for(const g of state.geofences){
+        const dn=haversine(state.location.lat,state.location.lng,g.lat,g.lng);
+        const dp=prevLocation?.lat!=null ? haversine(prevLocation.lat,prevLocation.lng,g.lat,g.lng) : Infinity;
+        const wasInside=dp<=g.radius, isInside=dn<=g.radius;
+        if(!wasInside&&isInside){ addAlert(g.type==='restricted'?'danger':g.type==='caution'?'warn':'ok', `Entered ${g.name} (${g.type}) zone`); }
+        else if(wasInside&&!isInside){ addAlert('ok', `Exited ${g.name} (${g.type}) zone`); }
+      }
+    }
+
+    // Panic flow
+    const holdBtn=$('panicHoldBtn'); let holdTimer=null, holdProgress=0, countdownInt=null, countdownVal=5;
+    function beginCountdown(){ $('countdownOverlay').classList.remove('hidden'); countdownVal=5; $('countdownValue').textContent=countdownVal;
+      countdownInt=setInterval(()=>{ countdownVal-=1; $('countdownValue').textContent=countdownVal; if(countdownVal<=0){ clearInterval(countdownInt); triggerPanic(); hideCountdown(); } },1000); }
+    function hideCountdown(){ $('countdownOverlay').classList.add('hidden'); clearInterval(countdownInt); }
+    $('cancelCountdown')?.addEventListener('click', hideCountdown);
+    $('sendNow')?.addEventListener('click', ()=>{ clearInterval(countdownInt); triggerPanic(); hideCountdown(); });
+    function triggerPanic(){ if(state.panic.active) return; state.panic.active=true; state.panic.startAt=Date.now();
+      $('panicSessionBox')?.classList.remove('hidden'); let startedAt=Date.now(); $('panicTimer').textContent='00:00';
+      state.panic.timerInt=setInterval(()=>{ $('panicTimer').textContent=formatTime(Date.now()-startedAt); },1000);
+      addAlert('danger','Emergency session started. Sharing text updated with latest location.');
+    }
+    function stopPanic(){ if(!state.panic.active) return; state.panic.active=false; clearInterval(state.panic.timerInt);
+      $('panicSessionBox')?.classList.add('hidden'); addAlert('ok','Emergency session ended.'); }
+    $('stopPanic')?.addEventListener('click', stopPanic);
+    function startHold(){ holdProgress=0; holdTimer=setInterval(()=>{ holdProgress+=200; if(holdProgress>=1800){ clearInterval(holdTimer); holdTimer=null; beginCountdown(); } },200); }
+    function cancelHold(){ if(holdTimer){ clearInterval(holdTimer); holdTimer=null; } }
+    if(holdBtn){ holdBtn.addEventListener('mousedown', startHold); holdBtn.addEventListener('touchstart', (e)=>{ e.preventDefault(); startHold(); }, {passive:false});
+      ['mouseup','mouseleave','touchend','touchcancel'].forEach(ev=>holdBtn.addEventListener(ev, cancelHold)); }
+
+    // Share helpers
+    function emergencyText(){
+      const p=state.profile||{};
+      const coords=state.location.lat!=null?`Location: ${state.location.lat.toFixed(5)}, ${state.location.lng.toFixed(5)}`:'Location: unavailable';
+      const nm=p.name?`Name: ${p.name}`:'Name: Unknown';
+      const emailLine=p.email?`Email: ${p.email}`:'';
+      const nat=p.nationality?`Nationality: ${p.nationality}`:'';
+      const pass=p.passport4?`Passport: ****${p.passport4}`:'';
+      const time=`Time (UTC): ${new Date().toISOString()}`;
+      const link=state.location.lat!=null?`Map: https://www.openstreetmap.org/?mlat=${state.location.lat}&mlon=${state.location.lng}#map=15/${state.location.lat}/${state.location.lng}`:'';
+      return `EMERGENCY — NEED HELP\n${nm}\n${emailLine}\n${nat}\n${pass}\n${coords}\n${link}\n${time}`;
+    }
+    $('copyEmergency')?.addEventListener('click', async ()=>{
+      try{ await navigator.clipboard.writeText(emergencyText()); alert('Emergency text copied. Paste into SMS/WhatsApp/Email.'); }
+      catch{ alert('Could not copy. Select and copy manually:\n\n'+emergencyText()); }
+    });
+    $('shareWhatsApp')?.addEventListener('click', ()=>{ const text=encodeURIComponent(emergencyText()); const url=`https://wa.me/?text=${text}`; window.open(url,'_blank','noopener,noreferrer'); });
+
+    // Profile form (in-app)
+    function loadProfileForm(){
+      const p=state.profile||{};
+      const set=(id,v)=>{ const el=$(id); if(el) el.value=v||''; };
+      set('name', p.name); set('email', p.email); set('nationality', p.nationality); set('passport4', p.passport4);
+      set('phone', p.phone); set('emergencyPhones', (p.emergencyPhones||[]).join(',')); const med=$('medical'); if(med) med.value=p.medical||'';
+    }
+    function saveProfile(e){
+      e.preventDefault();
+      const name=$('name').value.trim();
+      const email=$('email').value.trim();
+      const nationality=$('nationality').value.trim().toUpperCase();
+      const passport4=$('passport4').value.trim();
+      const phone=$('phone').value.trim();
+      const emergencyPhones=$('emergencyPhones').value.split(',').map(s=>s.trim()).filter(Boolean);
+      const medical=$('medical').value.trim();
+      if(!name || !email || !isEmail(email) || !nationality || nationality.length!==2 || !passport4 || passport4.length!==4 || !isE164(phone)){
+        alert('Please provide valid name, email, 2-letter nationality, 4-digit passport tail, and E.164 phone (+123...).'); return;
+      }
+      if(emergencyPhones.some(p=>!isE164(p))){ alert('Emergency contacts must be valid E.164 numbers.'); return; }
+      state.profile={ id: state.profile?.id || uid(), name, email, nationality, passport4, phone, emergencyPhones, medical, updatedAt: nowUTC() };
+      toLocal('profile', state.profile);
+      // Keep auth name/email in sync
+      auth = { ...(auth||{}), name, email }; toLocal('auth', auth);
+      updateAuthUI();
+      alert('Tourist ID saved.');
+    }
+    $('profileForm')?.addEventListener('submit', saveProfile);
+    $('clearProfile')?.addEventListener('click', ()=>{ if(confirm('Clear saved Tourist ID?')){ state.profile=null; toLocal('profile', null); loadProfileForm(); } });
+
+    // Itinerary
+    function renderStops(){
+      const list=$('stopsList'); if(!list) return;
+      list.innerHTML='';
+      if(state.itineraries.length===0){ list.innerHTML='<div class="text-sm text-slate-400">No stops yet. Add your first above.</div>'; return; }
+      state.itineraries.sort((a,b)=>new Date(a.time)-new Date(b.time)).forEach(stop=>{
+        const el=document.createElement('div'); el.className='rounded-xl bg-slate-800/60 p-3 flex items-center justify-between';
+        el.innerHTML=`
+          <div>
+            <div class="font-semibold">${stop.name}</div>
+            <div class="text-xs text-slate-400">${new Date(stop.time).toISOString()} • ${(+stop.lat).toFixed(5)}, ${(+stop.lng).toFixed(5)}</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button data-id="${stop.id}" class="editStop rounded-lg bg-slate-700 hover:bg-slate-600 px-3 py-1.5 text-sm">Edit</button>
+            <button data-id="${stop.id}" class="delStop rounded-lg bg-rose-600 hover:bg-rose-700 px-3 py-1.5 text-sm">Delete</button>
+          </div>`;
+        list.appendChild(el);
+      });
+      list.querySelectorAll('.delStop').forEach(btn=>btn.addEventListener('click',()=>{ const id=btn.getAttribute('data-id'); state.itineraries=state.itineraries.filter(s=>s.id!==id); toLocal('itineraries',state.itineraries); renderStops(); drawMiniMap(); }));
+      list.querySelectorAll('.editStop').forEach(btn=>btn.addEventListener('click',()=>{ const id=btn.getAttribute('data-id'); const s=state.itineraries.find(x=>x.id===id); if(!s) return; $('stopName').value=s.name; $('stopTime').value=s.time.slice(0,16); $('stopLat').value=s.lat; $('stopLng').value=s.lng; state.itineraries=state.itineraries.filter(x=>x.id!==id); toLocal('itineraries',state.itineraries); renderStops(); drawMiniMap(); }));
+    }
+    $('itineraryForm')?.addEventListener('submit',(e)=>{
+      e.preventDefault();
+      const name=$('stopName').value.trim(), time=$('stopTime').value, lat=parseFloat($('stopLat').value), lng=parseFloat($('stopLng').value);
+      if(!name||!time||isNaN(lat)||isNaN(lng)){ alert('Please complete all stop fields.'); return; }
+      state.itineraries.push({ id: uid(), name, time: toISO(time), lat, lng }); toLocal('itineraries', state.itineraries);
+      e.target.reset(); renderStops(); drawMiniMap();
+    });
+
+    // Geofences
+    function renderGeofences(){
+      const list=$('geofenceList'); if(!list) return;
+      list.innerHTML='';
+      if(state.geofences.length===0){ list.innerHTML='<div class="text-sm text-slate-400">No geo‑fences yet. Add one on the left.</div>'; drawMiniMap(); return; }
+      state.geofences.forEach(g=>{
+        const badge=g.type==='safe'?'bg-emerald-500/20 text-emerald-200':g.type==='caution'?'bg-amber-500/20 text-amber-200':'bg-rose-500/20 text-rose-200';
+        const el=document.createElement('div'); el.className='rounded-xl bg-slate-800/60 p-3 flex items-center justify-between';
+        el.innerHTML=`
+          <div>
+            <div class="font-semibold">${g.name} <span class="text-xs ${badge} px-2 py-0.5 rounded-full align-middle">${g.type}</span></div>
+            <div class="text-xs text-slate-400">${(+g.lat).toFixed(5)}, ${(+g.lng).toFixed(5)} • ${g.radius}m</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button data-id="${g.id}" class="editGf rounded-lg bg-slate-700 hover:bg-slate-600 px-3 py-1.5 text-sm">Edit</button>
+            <button data-id="${g.id}" class="delGf rounded-lg bg-rose-600 hover:bg-rose-700 px-3 py-1.5 text-sm">Delete</button>
+          </div>`;
+        list.appendChild(el);
+      });
+      list.querySelectorAll('.delGf').forEach(btn=>btn.addEventListener('click',()=>{ const id=btn.getAttribute('data-id'); state.geofences=state.geofences.filter(g=>g.id!==id); toLocal('geofences', state.geofences); renderGeofences(); drawMiniMap(); }));
+      list.querySelectorAll('.editGf').forEach(btn=>btn.addEventListener('click',()=>{ const id=btn.getAttribute('data-id'); const g=state.geofences.find(x=>x.id===id); if(!g) return; $('gfName').value=g.name; $('gfLat').value=g.lat; $('gfLng').value=g.lng; $('gfRadius').value=g.radius; $('gfType').value=g.type; state.geofences=state.geofences.filter(x=>x.id!==id); toLocal('geofences', state.geofences); renderGeofences(); drawMiniMap(); }));
+      drawMiniMap();
+    }
+    $('geofenceForm')?.addEventListener('submit',(e)=>{
+      e.preventDefault();
+      const name=$('gfName').value.trim(), lat=parseFloat($('gfLat').value), lng=parseFloat($('gfLng').value), radius=Math.max(10, parseInt($('gfRadius').value,10)), type=$('gfType').value;
+      if(!name||isNaN(lat)||isNaN(lng)||isNaN(radius)){ alert('Please complete all geo‑fence fields.'); return; }
+      state.geofences.push({ id: uid(), name, lat, lng, radius, type }); toLocal('geofences', state.geofences);
+      e.target.reset(); renderGeofences();
+    });
+    $('clearGeofences')?.addEventListener('click',()=>{ if(confirm('Remove all geo‑fences?')){ state.geofences=[]; toLocal('geofences', state.geofences); renderGeofences(); } });
+
+    // Settings & sync
+    function loadSettingsUI(){
+      const w=state.settings.weights;
+      if($('wZone')){ $('wZone').value=w.zone; $('wZoneVal').textContent=w.zone; }
+      if($('wTime')){ $('wTime').value=w.time; $('wTimeVal').textContent=w.time; }
+      if($('wInc')){ $('wInc').value=w.inc; $('wIncVal').textContent=w.inc; }
+      if($('wMove')){ $('wMove').value=w.move; $('wMoveVal').textContent=w.move; }
+      if($('wWx')){ $('wWx').value=w.wx; $('wWxVal').textContent=w.wx; }
+      if($('backendUrl')) $('backendUrl').value = state.settings.backendUrl || '';
+      if($('syncProfile')) $('syncProfile').checked = !!state.settings.syncProfile;
+      if($('syncPanic')) $('syncPanic').checked = !!state.settings.syncPanic;
+    }
+    ['wZone','wTime','wInc','wMove','wWx'].forEach(id=>{
+      const el=$(id); if(!el) return;
+      el.addEventListener('input', ()=>{ const val=parseInt($(id).value,10); $(id+'Val').textContent=val; state.settings.weights[id.replace('w','').toLowerCase()]=val; toLocal('settings', state.settings); computeSafetyScore(); });
+    });
+    $('backendForm')?.addEventListener('submit',(e)=>{
+      e.preventDefault();
+      state.settings.backendUrl=$('backendUrl').value.trim();
+      state.settings.syncProfile=$('syncProfile').checked;
+      state.settings.syncPanic=$('syncPanic').checked;
+      toLocal('settings', state.settings);
+      alert('Settings saved.');
+    });
+    $('testBackend')?.addEventListener('click', async ()=>{
+      const base=$('backendUrl').value.trim(); if(!base){ alert('Enter a Backend Base URL first.'); return; }
+      try{ const res=await fetch(base,{method:'GET',mode:'cors'}); alert('Request sent. Response status: '+res.status+' (CORS must be enabled on your server).'); }
+      catch{ alert('Failed to reach backend. Check URL and CORS.'); }
+    });
+
+    $('exportData')?.addEventListener('click', ()=>{
+      const data={ profile: state.profile, itineraries: state.itineraries, geofences: state.geofences, settings: state.settings, location: state.location };
+      const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob); a.download=`toursafe_export_${new Date().toISOString().replace(/[:.]/g,'-')}.json`; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+    });
+    $('importFile')?.addEventListener('change', async (e)=>{
+      const file=e.target.files[0]; if(!file) return;
+      try{
+        const text=await file.text(); const data=JSON.parse(text);
+        if(!('settings' in data)) throw new Error('Invalid file');
+        state.profile=data.profile||null; state.itineraries=Array.isArray(data.itineraries)?data.itineraries:[]; state.geofences=Array.isArray(data.geofences)?data.geofences:[]; state.settings=data.settings||state.settings; state.location=data.location||state.location;
+        toLocal('profile', state.profile); toLocal('itineraries', state.itineraries); toLocal('geofences', state.geofences); toLocal('settings', state.settings); toLocal('location', state.location);
+        loadProfileForm(); renderStops(); renderGeofences(); loadSettingsUI(); drawMiniMap(); computeSafetyScore();
+        alert('Data imported.');
+      }catch{ alert('Could not import: invalid JSON format.'); }
+      e.target.value='';
+    });
+    $('resetAll')?.addEventListener('click', ()=>{
+      if(!confirm('Erase all local data? This cannot be undone.')) return;
+      ['profile','itineraries','geofences','settings','location'].forEach(k=>localStorage.removeItem(k));
+      state.profile=null; state.itineraries=[]; state.geofences=[]; state.location={lat:null,lng:null,lastUpdate:null};
+      state.settings={ weights:{zone:35,time:20,inc:15,move:10,wx:5}, backendUrl:'', syncProfile:false, syncPanic:false };
+      loadProfileForm(); renderStops(); renderGeofences(); loadSettingsUI(); drawMiniMap(); computeSafetyScore();
+      addAlert('ok','All local data erased.');
+    });
+
+    // Notes toggle
+    $('noteBtn')?.addEventListener('click', ()=> $('notePanel').classList.toggle('hidden'));
+
+    // Initialize app UI when shown
+    function initAppUI(){
+      loadProfileForm(); renderStops(); renderGeofences(); loadSettingsUI(); drawMiniMap(); computeSafetyScore();
+      if(state.monitor.active) startMonitoring();
+    }
+  </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98290e0ba6f43e1c',t:'MTc1ODQ1MjM4NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
