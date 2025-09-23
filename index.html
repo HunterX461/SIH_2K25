@@ -691,6 +691,10 @@
       if(!same){
         lastPositions.push({lat,lng,t:Date.now()}); if(lastPositions.length>10) lastPositions.shift();
         drawMiniMap(); computeSafetyScore(); evaluateGeofences(prev);
+        // Integrate with geofencing backend
+        if(typeof window.GeofencingModule !== 'undefined'){
+          window.GeofencingModule.integrateWithLocationUpdate(lat, lng);
+        }
       }
     }
     function evaluateGeofences(prevLocation){
@@ -715,6 +719,11 @@
       $('panicSessionBox')?.classList.remove('hidden'); let startedAt=Date.now(); $('panicTimer').textContent='00:00';
       state.panic.timerInt=setInterval(()=>{ $('panicTimer').textContent=formatTime(Date.now()-startedAt); },1000);
       addAlert('danger','Emergency session started. Sharing text updated with latest location.');
+      // Integrate with geofencing backend for SOS
+      if(typeof window.GeofencingModule !== 'undefined'){
+        const emergencyMsg = emergencyText();
+        window.GeofencingModule.integrateWithEmergencySystem(emergencyMsg);
+      }
     }
     function stopPanic(){ if(!state.panic.active) return; state.panic.active=false; clearInterval(state.panic.timerInt);
       $('panicSessionBox')?.classList.add('hidden'); addAlert('ok','Emergency session ended.'); }
@@ -855,6 +864,15 @@
       state.settings.syncProfile=$('syncProfile').checked;
       state.settings.syncPanic=$('syncPanic').checked;
       toLocal('settings', state.settings);
+      // Update geofencing module with new backend URL
+      if(typeof window.GeofencingModule !== 'undefined'){
+        window.GeofencingModule.setBackendUrl(state.settings.backendUrl);
+        if(state.settings.backendUrl){
+          window.GeofencingModule.loadZones().catch(error => {
+            console.log('Could not load zones from backend:', error.message);
+          });
+        }
+      }
       alert('Settings saved.');
     });
     $('testBackend')?.addEventListener('click', async ()=>{
@@ -899,5 +917,6 @@
       if(state.monitor.active) startMonitoring();
     }
   </script>
+  <script src="geofencing.js"></script>
 <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98290e0ba6f43e1c',t:'MTc1ODQ1MjM4NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
