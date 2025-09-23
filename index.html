@@ -389,7 +389,7 @@
               <form id="backendForm" class="space-y-3">
                 <div>
                   <label class="text-xs text-slate-300">Backend Base URL (optional)</label>
-                  <input id="backendUrl" class="mt-1 w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 focus-ring" placeholder="https://api.example.com">
+                  <input id="backendUrl" class="mt-1 w-full bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 focus-ring" placeholder="http://127.0.0.1:8000">
                 </div>
                 <div class="grid md:grid-cols-2 gap-3">
                   <label class="inline-flex items-center gap-2">
@@ -691,6 +691,8 @@
       if(!same){
         lastPositions.push({lat,lng,t:Date.now()}); if(lastPositions.length>10) lastPositions.shift();
         drawMiniMap(); computeSafetyScore(); evaluateGeofences(prev);
+        // Send location to backend if URL is configured
+        sendLocationToBackend(lat, lng);
       }
     }
     function evaluateGeofences(prevLocation){
@@ -701,6 +703,121 @@
         const wasInside=dp<=g.radius, isInside=dn<=g.radius;
         if(!wasInside&&isInside){ addAlert(g.type==='restricted'?'danger':g.type==='caution'?'warn':'ok', `Entered ${g.name} (${g.type}) zone`); }
         else if(wasInside&&!isInside){ addAlert('ok', `Exited ${g.name} (${g.type}) zone`); }
+      }
+    }
+
+    // Backend Integration Functions
+    async function sendLocationToBackend(lat, lng) {
+      const backendUrl = state.settings.backendUrl?.trim();
+      if (!backendUrl) return; // No backend URL configured
+      
+      try {
+        // Generate or use existing tourist ID from profile
+        const touristId = state.profile?.id || 'anonymous_' + Date.now();
+        
+        const response = await fetch(`${backendUrl}/update_location`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            tourist_id: touristId,
+            lat: lat,
+            lon: lng
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          handleGeofenceResponse(data);
+        } else {
+          console.warn('Backend location update failed:', response.status);
+        }
+      } catch (error) {
+        console.warn('Failed to send location to backend:', error);
+      }
+    }
+
+    function handleGeofenceResponse(response) {
+      // Handle entered zones
+      if (response.entered && response.entered.length > 0) {
+        response.entered.forEach(zoneId => {
+          addAlert('warn', `Entered backend zone: ${zoneId}`);
+        });
+      }
+
+      // Handle exited zones  
+      if (response.exited && response.exited.length > 0) {
+        response.exited.forEach(zoneId => {
+          addAlert('ok', `Exited backend zone: ${zoneId}`);
+        });
+      }
+
+      // Handle current risks
+      if (response.current_risks && response.current_risks.length > 0) {
+        response.current_risks.forEach(risk => {
+          const alertType = risk.risk_level === 'high' ? 'danger' : 
+                           risk.risk_level === 'medium' ? 'warn' : 'ok';
+          addAlert(alertType, `Risk Alert: ${risk.name} (${risk.risk_level} risk)`);
+        });
+      }
+
+      // Display nearest police information
+      if (response.nearest_police) {
+        const police = response.nearest_police;
+        // Update a UI element to show nearest police info
+        updateNearestPoliceDisplay(police);
+      }
+
+      // Log successful backend integration
+      console.log('Backend geofence response processed:', response);
+    }
+
+    function updateNearestPoliceDisplay(policeInfo) {
+      // Create or update nearest police display in alerts area
+      if (policeInfo && policeInfo.name) {
+        const distance = policeInfo.distance_km ? 
+          ` (${policeInfo.distance_km.toFixed(1)}km away)` : '';
+        addAlert('ok', `Nearest Police: ${policeInfo.name}${distance}`);
+      }
+    }
+
+    async function loadBackendZones() {
+      const backendUrl = state.settings.backendUrl?.trim();
+      if (!backendUrl) return;
+      
+      try {
+        const response = await fetch(`${backendUrl}/map_zones`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const zones = await response.json();
+          // Convert backend zones to local geofences format for display
+          if (zones && zones.length > 0) {
+            zones.forEach(zone => {
+              // Add backend zones to UI for visualization
+              // Convert polygon coordinates to center point for display
+              if (zone.coordinates && zone.coordinates.length > 0) {
+                const lats = zone.coordinates.map(coord => coord[1]);
+                const lngs = zone.coordinates.map(coord => coord[0]);
+                const centerLat = lats.reduce((a, b) => a + b) / lats.length;
+                const centerLng = lngs.reduce((a, b) => a + b) / lngs.length;
+                
+                console.log(`Backend zone loaded: ${zone.name} at ${centerLat.toFixed(4)}, ${centerLng.toFixed(4)} (${zone.risk_level} risk)`);
+              }
+            });
+            drawMiniMap(); // Refresh map to show backend zones if needed
+          }
+        } else {
+          console.warn('Failed to load backend zones:', response.status);
+        }
+      } catch (error) {
+        console.warn('Error loading backend zones:', error);
       }
     }
 
@@ -856,11 +973,30 @@
       state.settings.syncPanic=$('syncPanic').checked;
       toLocal('settings', state.settings);
       alert('Settings saved.');
+      // Load backend zones when backend URL is configured
+      loadBackendZones();
     });
     $('testBackend')?.addEventListener('click', async ()=>{
       const base=$('backendUrl').value.trim(); if(!base){ alert('Enter a Backend Base URL first.'); return; }
-      try{ const res=await fetch(base,{method:'GET',mode:'cors'}); alert('Request sent. Response status: '+res.status+' (CORS must be enabled on your server).'); }
-      catch{ alert('Failed to reach backend. Check URL and CORS.'); }
+      
+      try{ 
+        // Test basic connectivity
+        const res=await fetch(base,{method:'GET',mode:'cors'}); 
+        
+        // Test specific endpoints
+        const zoneRes = await fetch(`${base}/map_zones`, {method:'GET',mode:'cors'});
+        const zoneStatus = zoneRes.ok ? 'OK' : `Error ${zoneRes.status}`;
+        
+        alert(`Backend Test Results:\nBase URL: ${res.status}\n/map_zones: ${zoneStatus}\n\nNote: CORS must be enabled on your server.`); 
+        
+        // Try to load zones if successful
+        if (zoneRes.ok) {
+          loadBackendZones();
+        }
+      }
+      catch(err){ 
+        alert('Failed to reach backend. Check URL and CORS.\nError: ' + err.message); 
+      }
     });
 
     $('exportData')?.addEventListener('click', ()=>{
@@ -897,6 +1033,10 @@
     function initAppUI(){
       loadProfileForm(); renderStops(); renderGeofences(); loadSettingsUI(); drawMiniMap(); computeSafetyScore();
       if(state.monitor.active) startMonitoring();
+      // Load backend zones if backend URL is configured
+      if(state.settings.backendUrl?.trim()) {
+        loadBackendZones();
+      }
     }
   </script>
 <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98290e0ba6f43e1c',t:'MTc1ODQ1MjM4NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
