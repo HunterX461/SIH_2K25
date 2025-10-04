@@ -1,7 +1,12 @@
 import { Tabs } from 'expo-router';
 import { Shield, MapPin, User, TriangleAlert as AlertTriangle, Settings } from 'lucide-react-native';
+// --- 1. IMPORT THE HOOK TO READ THE TOURIST ID ---
+import { useGlobalSearchParams } from 'expo-router';
 
 export default function TabLayout() {
+  // --- 2. GET THE TOURIST ID FROM THE GLOBAL NAVIGATION STATE ---
+  const { touristId } = useGlobalSearchParams<{ touristId: string }>();
+
   return (
     <Tabs
       screenOptions={{
@@ -41,6 +46,11 @@ export default function TabLayout() {
           tabBarIcon: ({ size, color }) => (
             <AlertTriangle size={size} color={color} />
           ),
+          // --- 3. THIS IS THE CRITICAL CHANGE ---
+          // This line dynamically builds the link for the emergency tab.
+          // If a touristId exists, it creates a link like "/emergency?touristId=23".
+          // If not, it just links to "/emergency".
+          href: touristId ? `/emergency?touristId=${touristId}` : '/emergency',
         }}
       />
       <Tabs.Screen

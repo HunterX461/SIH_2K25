@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Police & Tourism - Live Dashboard</title>
+
+    <!-- 1. Include the Leaflet library for the map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
+
+    <style>
+        /* Make the map fill the entire browser window */
+        body { margin: 0; padding: 0; font-family: sans-serif; }
+        #map { height: 100vh; width: 100vw; }
+        .info-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            z-index: 1000; /* Ensure it's on top of the map */
+        }
+        .info-panel h2 { margin: 0 0 5px 0; font-size: 1.2em; }
+        .info-panel p { margin: 0; }
+    </style>
+</head>
+<body>
+
+    <!-- 2. This is the container where the map will be rendered -->
+    <div id="map"></div>
+    
+    <div class="info-panel">
+        <h2>Live Tourist Tracker</h2>
+        <p id="tourist-count">Tracking 0 tourists...</p>
+    </div>
+
+    <script>
+        // --- 3. JavaScript to control the map ---
+
+        // !!! IMPORTANT: Make sure this is your computer's network IP address !!!
+        const API_URL = 'http://10.232.121.138:8000';
+
+        // Initialize the map, centered on a default location (e.g., Mumbai)
+        const map = L.map('map').setView([19.0760, 72.8777], 12);
+
+        // Add the map's background tiles (from OpenStreetMap)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // This layer will hold all our tourist markers
+        const markersLayer = L.layerGroup().addTo(map);
+
+        // This function fetches data and updates the map
+        async function updateMarkers() {
+            try {
+                const response = await fetch(`${API_URL}/tourists`);
+                const tourists = await response.json();
+
+                // Clear all old markers before adding new ones
+                markersLayer.clearLayers();
+
+                // Update the tourist count display
+                document.getElementById('tourist-count').innerText = `Tracking ${tourists.length} tourists...`;
+
+                // Loop through each tourist and add a marker
+                tourists.forEach(tourist => {
+                    // Only add a marker if the tourist has a location
+                    if (tourist.latitude && tourist.longitude) {
+                        const marker = L.marker([tourist.latitude, tourist.longitude]);
+                        marker.bindPopup(`<b>${tourist.name}</b><br>ID: ${tourist.id}`);
+                        markersLayer.addLayer(marker);
+                    }
+                });
+
+            } catch (error) {
+                console.error("Failed to fetch tourist data:", error);
+                document.getElementById('tourist-count').innerText = 'Connection to server failed.';
+            }
+        }
+
+        // Run the function immediately...
+        updateMarkers();
+
+        // ...and then run it again every 10 seconds to get live updates
+        setInterval(updateMarkers, 10000); // 10000 milliseconds = 10 seconds
+
+    </script>
+</body>
+</html>
