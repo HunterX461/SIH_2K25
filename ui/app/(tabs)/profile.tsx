@@ -1,84 +1,65 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { User, CreditCard as Edit, MapPin } from 'lucide-react-native';
+import { User, CreditCard as Edit, MapPin, LogOut } from 'lucide-react-native';
 import { useTranslation } from '../hooks/useTranslation';
 import { ProfileSection } from '../components/ProfileSection';
 import { TouristIdCard } from '../components/TouristIdCard';
-import { router } from 'expo-router'; // Import the router
-import * as Location from 'expo-location'; // Import location library
-
-// API URL - Make sure this is your computer's network IP address
-const API_URL = 'http://10.232.121.138:8000'; 
+import { router } from 'expo-router';
+import * as Location from 'expo-location';
+import { useAuth } from '../contexts/AuthContext';
+import { apiService } from '../services/apiService';
 
 export default function ProfileScreen() {
   const { t } = useTranslation();
+  const { user, logout } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState({
-    name: 'John Doe',
-    emergencyContact: 'Jane Doe - +1 (555) 987-6543',
-    touristId: 'TST-2025-001234',
-    // You can keep other fields for UI purposes
-    email: 'john.doe@email.com',
-    phone: '+1 (555) 123-4567',
-    nationality: 'USA',
-    passportNumber: 'A12345678',
-    currentLocation: 'San Francisco, CA',
-    travelDates: '2025-01-15 to 2025-01-30',
-    verificationStatus: 'Verified',
+    name: user?.name || 'Guest User',
+    emergencyContact: user?.emergency_contact || 'Not set',
+    touristId: `TST-${user?.id || '000'}`,
+    email: user?.email || 'guest@example.com',
+    phone: '',
+    nationality: '',
+    passportNumber: '',
+    currentLocation: '',
+    travelDates: '',
+    verificationStatus: user?.is_guest ? 'Guest' : 'Verified',
   });
 
-  // This will store the raw numeric ID for API calls and to trigger location tracking
-  const [numericTouristId, setNumericTouristId] = useState<number | null>(null);
-
-  const handleSaveProfile = async () => {
-    setIsEditing(false);
-    try {
-      const response = await fetch(`${API_URL}/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          name: profile.name, 
-          emergency_contact: profile.emergencyContact 
-        }),
+  useEffect(() => {
+    // Update profile when user changes
+    if (user) {
+      setProfile({
+        name: user.name,
+        emergencyContact: user.emergency_contact || 'Not set',
+        touristId: `TST-${user.id}`,
+        email: user.email,
+        phone: '',
+        nationality: '',
+        passportNumber: '',
+        currentLocation: '',
+        travelDates: '',
+        verificationStatus: user.is_guest ? 'Guest' : 'Verified',
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to register');
-      }
-
-      const data = await response.json();
-
-      // Update the profile state for the UI
-      setProfile({ ...profile, touristId: `TST-2025-${data.id}` });
-      // Store the numeric ID for API calls
-      setNumericTouristId(data.id);
-      
-      // THIS IS THE CRUCIAL LINE that shares the ID with the navigation layout
-      router.setParams({ touristId: data.id.toString() });
-
-      // Use standard web alert for browser compatibility
-      alert(`Registration Success! Your new Tourist ID is: ${data.id}`);
-
-    } catch (error) {
-      console.error(error);
-      alert('API Error: An error occurred while registering.');
     }
-  };
+  }, [user]);
 
   // This useEffect hook handles location tracking
   useEffect(() => {
-    // It will only run when numericTouristId gets a value (i.e., after registration)
-    if (numericTouristId === null) {
-      return; // Do nothing if not registered
-    }
+    if (!user?.token) return;
 
-    console.log(`Starting location tracking for tourist ID: ${numericTouristId}`);
+    console.log(`Starting location tracking for user: ${user.name}`);
 
     const startLocationTracking = async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        alert('Permission to access location was denied.');
+        const alertMsg = 'Permission to access location was denied.';
+        if (Platform.OS === 'web') {
+          alert(alertMsg);
+        } else {
+          Alert.alert('Permission Denied', alertMsg);
+        }
         return;
       }
 
@@ -86,17 +67,9 @@ export default function ProfileScreen() {
         try {
           let location = await Location.getCurrentPositionAsync({});
           const { latitude, longitude } = location.coords;
-          console.log(`Sending location for tourist ${numericTouristId}: ${latitude}, ${longitude}`);
+          console.log(`Sending location: ${latitude}, ${longitude}`);
 
-          await fetch(`${API_URL}/update_location`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              tourist_id: numericTouristId,
-              lat: latitude,
-              lon: longitude,
-            }),
-          });
+          await apiService.updateLocation(user.token, latitude, longitude);
         } catch (error) {
           console.error("Failed to send location update:", error);
         }
@@ -107,7 +80,43 @@ export default function ProfileScreen() {
 
     startLocationTracking();
 
-  }, [numericTouristId]); // This dependency array ensures the effect runs only when the ID changes
+  }, [user]);
+
+  const handleSaveProfile = () => {
+    setIsEditing(false);
+    const msg = 'Profile changes saved locally. Sync with backend in Settings.';
+    if (Platform.OS === 'web') {
+      alert(msg);
+    } else {
+      Alert.alert('Success', msg);
+    }
+  };
+
+  const handleLogout = async () => {
+    const confirmed = Platform.OS === 'web' 
+      ? window.confirm('Are you sure you want to logout?')
+      : true;
+
+    if (Platform.OS !== 'web') {
+      Alert.alert(
+        'Logout',
+        'Are you sure you want to logout?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Logout',
+            onPress: async () => {
+              await logout();
+              router.replace('/login');
+            }
+          }
+        ]
+      );
+    } else if (confirmed) {
+      await logout();
+      router.replace('/login');
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -180,6 +189,14 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
         )}
+
+        {/* Logout Button */}
+        <View style={styles.saveSection}>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <LogOut size={20} color="#DC2626" />
+            <Text style={styles.logoutButtonText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </View>
   );
@@ -204,4 +221,6 @@ const styles = StyleSheet.create({
   saveSection: { padding: 20 },
   saveButton: { paddingVertical: 16, backgroundColor: '#059669', borderRadius: 12, alignItems: 'center' },
   saveButtonText: { fontSize: 18, fontWeight: '600', color: '#FFFFFF' },
+  logoutButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, backgroundColor: '#FEF2F2', borderRadius: 12, gap: 8, borderWidth: 1, borderColor: '#FCA5A5' },
+  logoutButtonText: { fontSize: 18, fontWeight: '600', color: '#DC2626' },
 });
