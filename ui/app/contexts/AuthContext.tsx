@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE || 'http://10.232.121.138:8000';
+
 interface User {
   id: number;
   name: string;
@@ -73,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await fetch('http://10.232.121.138:8000/login', {
+      const response = await fetch(`${API_BASE_URL}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -110,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     emergencyContact?: string
   ) => {
     try {
-      const response = await fetch('http://10.232.121.138:8000/register', {
+      const response = await fetch(`${API_BASE_URL}/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -149,7 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginAsGuest = async (name: string, email: string) => {
     try {
-      const response = await fetch('http://10.232.121.138:8000/register', {
+      const response = await fetch(`${API_BASE_URL}/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
