@@ -242,3 +242,5 @@ export function useTranslation() {
     changeLanguage,
   };
 }
+
+export default useTranslation;
