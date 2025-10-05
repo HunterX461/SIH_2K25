@@ -334,3 +334,14 @@ export const mockApiResponses = {
     },
   ],
 };
+
+// Default export containing all sample data
+export default {
+  emergencyContacts,
+  safetyZones,
+  dangerZones,
+  sampleTouristProfiles,
+  sampleIncidentReports,
+  safetyTips,
+  mockApiResponses,
+};

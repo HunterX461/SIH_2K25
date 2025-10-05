@@ -58,3 +58,5 @@ const styles = StyleSheet.create({
     gap: 4,
   },
 });
+
+export default ProfileSection;
