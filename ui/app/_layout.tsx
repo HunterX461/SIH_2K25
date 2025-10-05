@@ -35,6 +35,7 @@ function RootLayoutNav() {
   );
 }
 
+
 export default function RootLayout() {
   useFrameworkReady();
 
@@ -44,3 +45,4 @@ export default function RootLayout() {
     </AuthProvider>
   );
 }
+

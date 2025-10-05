@@ -148,14 +148,14 @@ class ApiService {
   // Zones
   async getZones(token?: string) {
     return this.request<
-      Array<{
+      {
         zone_id: string;
         name: string;
         risk_level: string;
         zone_type: string;
         color: string;
         coordinates: number[][];
-      }>
+      }[]
     >('/zones', {
       token,
     });
@@ -182,12 +182,12 @@ class ApiService {
   // Police Stations
   async getPoliceStations(token?: string) {
     return this.request<
-      Array<{
+      {
         id: number;
         name: string;
         latitude: number;
         longitude: number;
-      }>
+      }[]
     >('/police_stations', {
       token,
     });
@@ -196,13 +196,13 @@ class ApiService {
   // Alert History
   async getAlertHistory(token: string) {
     return this.request<
-      Array<{
+      {
         id: number;
         latitude: number;
         longitude: number;
         message?: string;
         timestamp: string;
-      }>
+      }[]
     >('/alerts/history', {
       token,
     });
