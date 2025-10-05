@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { TriangleAlert as AlertTriangle, Phone, MessageSquare, Shield, Clock } from 'lucide-react-native';
 import * as Location from 'expo-location';
@@ -7,91 +7,152 @@ import * as Haptics from 'expo-haptics';
 import { useTranslation } from '../hooks/useTranslation';
 import { EmergencyContactCard } from '../components/EmergencyContactCard';
 import { emergencyContacts } from '../data/sampleData';
-import { useGlobalSearchParams } from 'expo-router';
-
-const API_URL = 'http://10.232.121.138:8000';
+import { useAuth } from '../contexts/AuthContext';
+import { apiService } from '../services/apiService';
 
 export default function EmergencyScreen() {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const mountedRef = useRef(true);
   const [isEmergencyActive, setIsEmergencyActive] = useState(false);
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [countdown, setCountdown] = useState(0);
-  const { touristId } = useGlobalSearchParams<{ touristId: string }>();
 
-  useEffect(() => { /* ... (no changes here) ... */ }, []);
-  useEffect(() => { /* ... (no changes here) ... */ }, [countdown]);
-  const getCurrentLocation = async () => { /* ... (no changes here) ... */ };
+  useEffect(() => {
+    mountedRef.current = true;
+    getCurrentLocation();
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
-  // --- THIS ENTIRE FUNCTION IS UPDATED ---
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => {
+        if (mountedRef.current) {
+          setCountdown(countdown - 1);
+        }
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [countdown]);
+
+  const getCurrentLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        return;
+      }
+      const currentLocation = await Location.getCurrentPositionAsync({});
+      if (mountedRef.current) {
+        setLocation(currentLocation);
+      }
+    } catch (error) {
+      console.error('Error getting location:', error);
+    }
+  };
+
+  const showAlert = (title: string, message: string) => {
+    if (Platform.OS === 'web') {
+      alert(`${title}\n\n${message}`);
+    } else {
+      Alert.alert(title, message);
+    }
+  };
+
   const triggerEmergencyAlert = () => {
-    if (!touristId) {
-      alert("Cannot send SOS. Please register on the Profile tab first.");
+    if (!user) {
+      showAlert('Error', 'Please login to send SOS alerts');
       return;
     }
 
-    // Use window.confirm for a web-compatible confirmation dialog
-    const isConfirmed = window.confirm(
-      'Emergency SOS\n\nThis will send your location to all emergency contacts and authorities. Are you sure?'
-    );
+    const isConfirmed = Platform.OS === 'web'
+      ? window.confirm('Emergency SOS\n\nThis will send your location to all emergency contacts and authorities. Are you sure?')
+      : true;
 
-    if (isConfirmed) {
+    if (Platform.OS !== 'web') {
+      Alert.alert(
+        'Emergency SOS',
+        'This will send your location to all emergency contacts and authorities. Are you sure?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Send SOS', 
+            style: 'destructive',
+            onPress: () => {
+              if (mountedRef.current) {
+                setIsEmergencyActive(true);
+                setCountdown(30);
+              }
+              sendEmergencyAlert();
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+            }
+          }
+        ]
+      );
+    } else if (isConfirmed) {
       if (mountedRef.current) {
         setIsEmergencyActive(true);
         setCountdown(30);
       }
       sendEmergencyAlert();
-      if (Platform.OS !== 'web') {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-      }
     }
   };
 
-  // --- THIS FUNCTION IS UPDATED ---
   const sendEmergencyAlert = async () => {
-    if (!touristId) return;
+    if (!user?.token) return;
 
     try {
-      const response = await fetch(`${API_URL}/panic`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tourist_id: parseInt(touristId, 10),
-        }),
-      });
+      const currentLoc = location || await Location.getCurrentPositionAsync({});
+      const result = await apiService.sendSOS(
+        user.token,
+        currentLoc.coords.latitude,
+        currentLoc.coords.longitude,
+        'Emergency SOS Alert!'
+      );
 
-      if (!response.ok) {
-        throw new Error('Server responded with an error');
-      }
-      
-      console.log(`Panic alert sent for tourist ID: ${touristId}`);
+      console.log('SOS sent:', result);
       
       if (mountedRef.current) {
-        // Use standard web alert
-        alert('SOS Sent Successfully! Your emergency contacts have been notified. Help is on the way!');
+        showAlert(
+          'SOS Sent Successfully!',
+          `Your emergency contacts have been notified. Help is on the way!\n\nNearest station: ${result.nearest_police_station?.name || 'Unknown'}`
+        );
       }
     } catch (error) {
       console.error('Error sending emergency alert:', error);
       if (mountedRef.current) {
-        // Use standard web alert
-        alert('Error: Failed to send emergency alert. Please try again.');
+        showAlert('Error', 'Failed to send emergency alert. Please try again.');
       }
     }
   };
 
-  // --- THIS FUNCTION IS UPDATED ---
   const cancelEmergencyAlert = () => {
-    // Use window.confirm for a web-compatible confirmation dialog
-    const isConfirmed = window.confirm(
-      'Are you sure you want to cancel the emergency alert?'
-    );
+    const isConfirmed = Platform.OS === 'web'
+      ? window.confirm('Are you sure you want to cancel the emergency alert?')
+      : true;
 
-    if (isConfirmed) {
+    if (Platform.OS !== 'web') {
+      Alert.alert(
+        'Cancel Alert',
+        'Are you sure you want to cancel the emergency alert?',
+        [
+          { text: 'No', style: 'cancel' },
+          {
+            text: 'Yes',
+            onPress: () => {
+              if (mountedRef.current) {
+                setIsEmergencyActive(false);
+                setCountdown(0);
+              }
+            }
+          }
+        ]
+      );
+    } else if (isConfirmed) {
       if (mountedRef.current) {
         setIsEmergencyActive(false);
         setCountdown(0);
-        // Use standard web alert
-        alert('Alert Canceled. Emergency alert has been canceled.');
       }
     }
   };

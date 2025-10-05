@@ -4,13 +4,9 @@ import { StatusBar } from 'expo-status-bar';
 import * as Location from 'expo-location';
 import { Crosshair } from 'lucide-react-native';
 import { useTranslation } from '../hooks/useTranslation';
-import { safetyZones, dangerZones } from '../data/sampleData';
-
-// --- THIS IS THE CORRECTED IMPORT ---
-// MapView and other components are NAMED exports, so they must be inside curly braces.
 import { MapView, Marker, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
-
-const API_URL = 'http://10.232.121.138:8000';
+import { useAuth } from '../contexts/AuthContext';
+import { apiService } from '../services/apiService';
 
 interface Tourist {
   id: number;
@@ -19,8 +15,18 @@ interface Tourist {
   longitude: number | null;
 }
 
+interface Zone {
+  zone_id: string;
+  name: string;
+  risk_level: string;
+  zone_type: string;
+  color: string;
+  coordinates: number[][];
+}
+
 export default function MapsScreen() {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const mapRef = useRef<MapView>(null);
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [region, setRegion] = useState({
@@ -29,33 +35,40 @@ export default function MapsScreen() {
     latitudeDelta: 0.5,
     longitudeDelta: 0.5,
   });
-  const [allTourists, setAllTourists] = useState<Tourist[]>([]);
+  const [zones, setZones] = useState<Zone[]>([]);
 
   useEffect(() => {
     let isMounted = true;
     let watchId: Location.LocationSubscription | null = null;
 
     const requestLocationPermission = async () => {
-      // Your location permission logic here...
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted' && isMounted) {
+        const currentLocation = await Location.getCurrentPositionAsync({});
+        setLocation(currentLocation);
+        setRegion({
+          latitude: currentLocation.coords.latitude,
+          longitude: currentLocation.coords.longitude,
+          latitudeDelta: 0.05,
+          longitudeDelta: 0.05,
+        });
+      }
     };
 
-    const fetchAllTourists = async () => {
+    const fetchZones = async () => {
       try {
-        const response = await fetch(`${API_URL}/tourists`);
-        if (!response.ok) return;
-        const data: Tourist[] = await response.json();
+        const data = await apiService.getZones(user?.token);
         if (isMounted) {
-          const locatedTourists = data.filter(t => t.latitude !== null && t.longitude !== null);
-          setAllTourists(locatedTourists);
+          setZones(data);
         }
       } catch (error) {
-        console.error("Failed to fetch tourists:", error);
+        console.error("Failed to fetch zones:", error);
       }
     };
     
     requestLocationPermission();
-    fetchAllTourists();
-    const touristFetchInterval = setInterval(fetchAllTourists, 15000);
+    fetchZones();
+    const zonesFetchInterval = setInterval(fetchZones, 30000);
 
     return () => {
       isMounted = false;

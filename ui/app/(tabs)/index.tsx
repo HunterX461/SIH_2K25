@@ -10,9 +10,12 @@ import { SafetyScoreCard } from '../components/SafetyScoreCard';
 import { QuickActionCard } from '../components/QuickActionCard';
 import { RecentAlertsCard } from '../components/RecentAlertsCard';
 import { locationService } from '../services/locationService';
+import { useAuth } from '../contexts/AuthContext';
+import { apiService } from '../services/apiService';
 
 export default function HomeScreen() {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const mountedRef = useRef(true);
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [safetyScore, setSafetyScore] = useState(85);
@@ -37,6 +40,19 @@ export default function HomeScreen() {
       const currentLocation = await Location.getCurrentPositionAsync({});
       if (mountedRef.current) {
         setLocation(currentLocation);
+      }
+      
+      // Update location on backend if user is authenticated
+      if (user?.token) {
+        try {
+          await apiService.updateLocation(
+            user.token,
+            currentLocation.coords.latitude,
+            currentLocation.coords.longitude
+          );
+        } catch (error) {
+          console.error('Error updating location on backend:', error);
+        }
       }
       
       // Calculate safety score for current area
