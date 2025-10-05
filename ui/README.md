@@ -58,11 +58,14 @@ A comprehensive mobile application designed to enhance tourist safety through re
    ```
 
 2. **Environment Configuration**
-   Create a `.env` file with necessary API keys:
+   The `.env` file contains the backend API configuration:
    ```
+   EXPO_PUBLIC_API_BASE=http://10.232.121.138:8000
    EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
    EXPO_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
    ```
+   
+   Update `EXPO_PUBLIC_API_BASE` with your backend API URL to connect to a different server.
 
 3. **Run the Application**
    ```bash
