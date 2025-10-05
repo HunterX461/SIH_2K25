@@ -219,13 +219,24 @@ npm run dev
 ## Configuration
 
 ### Backend Base URL
-Update in frontend files:
-- `/ui/app/services/apiService.ts`: Line 6
-- `/ui/app/contexts/AuthContext.tsx`: Lines 71, 108, 154
 
-Default: `http://10.232.121.138:8000`
+The application uses the `EXPO_PUBLIC_API_BASE` environment variable for the backend API URL.
 
-For production, use environment variables.
+**Environment Variable:** `EXPO_PUBLIC_API_BASE`  
+**Default:** `http://10.232.121.138:8000`
+
+All API calls throughout the application use this environment variable:
+- `/ui/app/services/apiService.ts`: Uses `process.env.EXPO_PUBLIC_API_BASE`
+- `/ui/app/contexts/AuthContext.tsx`: Uses `process.env.EXPO_PUBLIC_API_BASE`
+- `/ui/app/(tabs)/maps.web.tsx`: Uses `process.env.EXPO_PUBLIC_API_BASE`
+
+To override for production or different environments, create a `.env` file in the `/ui` directory:
+
+```env
+EXPO_PUBLIC_API_BASE=https://your-production-api.com
+```
+
+This ensures all API calls use the correct backend URL without hardcoding.
 
 ## Testing
 
@@ -236,6 +247,15 @@ All endpoints tested and working:
 - ✅ Location updates
 - ✅ Zone retrieval
 - ✅ Authentication flow
+
+### Test Credentials
+
+For development and testing purposes, the following test credentials are available:
+
+**Email:** `test@gmail.com`  
+**Password:** `test123`
+
+These credentials bypass the backend authentication and create a local test user with ID 999. This allows for offline testing and development without requiring a backend connection.
 
 ## Next Steps
 

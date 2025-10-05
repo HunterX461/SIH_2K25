@@ -37,4 +37,4 @@ Thumbs.db
 # Expo
 .expo/
 .expo-shared/
-web-build/
+web-build/ui/package-lock.json

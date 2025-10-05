@@ -75,6 +75,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
+      // Test credentials bypass for development/testing
+      // Test user: test@gmail.com / test123
+      if (email === 'test@gmail.com' && password === 'test123') {
+        const userData: User = {
+          id: 999,
+          name: 'Test User',
+          email: 'test@gmail.com',
+          token: 'test-token-' + Date.now(),
+          emergency_contact: '+1 (555) 000-0000',
+          is_guest: false
+        };
+        setUser(userData);
+        await storage.setItem('user', JSON.stringify(userData));
+        return;
+      }
+
       const response = await fetch(`${API_BASE_URL}/login`, {
         method: 'POST',
         headers: {

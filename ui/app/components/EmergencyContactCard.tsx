@@ -148,3 +148,5 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
 });
+
+export default EmergencyContactCard;
