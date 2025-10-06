@@ -26,6 +26,17 @@ interface Zone {
   coordinates: number[][];
 }
 
+interface MustVisitPlace {
+  id: number;
+  zone_id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  coordinates: number[][];
+  description: string;
+  distance_km?: number;
+}
+
 export default function MapsScreen() {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -41,6 +52,7 @@ export default function MapsScreen() {
   const [allTourists, setAllTourists] = useState<Tourist[]>([]);
   const [safetyZones, setSafetyZones] = useState<any[]>([]);
   const [dangerZones, setDangerZones] = useState<any[]>([]);
+  const [mustVisitPlaces, setMustVisitPlaces] = useState<MustVisitPlace[]>([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -122,10 +134,22 @@ export default function MapsScreen() {
         console.error("Failed to fetch tourists:", error);
       }
     };
+
+    const fetchMustVisitPlaces = async (lat?: number, lon?: number) => {
+      try {
+        const data = await apiService.getMustVisitPlaces(lat, lon, 100, user?.token);
+        if (isMounted) {
+          setMustVisitPlaces(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch must-visit places:", error);
+      }
+    };
     
     requestLocationPermission();
     fetchZones();
     fetchTourists();
+    fetchMustVisitPlaces();
     
     const zonesFetchInterval = setInterval(fetchZones, 30000);
     const touristFetchInterval = setInterval(fetchTourists, 10000); // Every 10 seconds
@@ -182,6 +206,15 @@ export default function MapsScreen() {
         {dangerZones.map((zone, index) => (
           <Circle key={`danger-${index}`} center={{ latitude: zone.latitude, longitude: zone.longitude }} radius={zone.radius} strokeColor="rgba(239, 68, 68, 0.8)" fillColor="rgba(239, 68, 68, 0.2)" />
         ))}
+        {mustVisitPlaces.map((place) => (
+          <Marker
+            key={`place-${place.id}`}
+            coordinate={{ latitude: place.latitude, longitude: place.longitude }}
+            title={`⭐ ${place.name}`}
+            description={place.description + (place.distance_km ? `\n${place.distance_km}km away` : '')}
+            pinColor="gold"
+          />
+        ))}
       </MapView>
       <View style={styles.controls}>
         <TouchableOpacity style={styles.controlButton} onPress={centerOnUser}>
@@ -193,6 +226,7 @@ export default function MapsScreen() {
         <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: 'red' }]} /><Text style={styles.legendText}>Emergency 🚨</Text></View>
         <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: 'orange' }]} /><Text style={styles.legendText}>Moving</Text></View>
         <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: 'blue' }]} /><Text style={styles.legendText}>Idle</Text></View>
+        <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: 'gold' }]} /><Text style={styles.legendText}>⭐ Must Visit</Text></View>
         <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: '#22C55E' }]} /><Text style={styles.legendText}>{t('safe_zones')}</Text></View>
         <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: '#EF4444' }]} /><Text style={styles.legendText}>{t('danger_zones')}</Text></View>
       </View>

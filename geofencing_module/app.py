@@ -218,7 +218,20 @@ def register_user(user: UserRegister, db: Session = Depends(get_db)):
 @app.post("/login", response_model=Token)
 def login_user(user: UserLogin, db: Session = Depends(get_db)):
     db_user = db.query(Tourist).filter(Tourist.email == user.email).first()
-    if not db_user or not verify_password(user.password, db_user.password_hash):
+    if not db_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password"
+        )
+    
+    # For guest users, password_hash might be None
+    if db_user.is_guest:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Guest users cannot login. Please register as guest again."
+        )
+    
+    if not db_user.password_hash or not verify_password(user.password, db_user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password"
@@ -409,8 +422,16 @@ def create_sos_alert(
     }
 
 @app.get("/zones")
-def get_zones(db: Session = Depends(get_db)):
-    zones = db.query(Zone).all()
+def get_zones(zone_type: Optional[str] = None, db: Session = Depends(get_db)):
+    """
+    Get all zones, optionally filtered by zone_type
+    zone_type can be: tourist, risk, city, must_visit
+    """
+    if zone_type:
+        zones = db.query(Zone).filter(Zone.zone_type == zone_type).all()
+    else:
+        zones = db.query(Zone).all()
+    
     colors = {"normal": "green", "medium": "yellow", "high": "red"}
     
     result = []
@@ -427,6 +448,32 @@ def get_zones(db: Session = Depends(get_db)):
         })
     
     return result
+
+@app.get("/zones/statistics")
+def get_zone_statistics(db: Session = Depends(get_db)):
+    """Get statistics about zones and incidents"""
+    zones = db.query(Zone).all()
+    total_zones = len(zones)
+    
+    # Count by type
+    zone_types = {}
+    risk_levels = {}
+    for zone in zones:
+        zone_types[zone.zone_type] = zone_types.get(zone.zone_type, 0) + 1
+        risk_levels[zone.risk_level] = risk_levels.get(zone.risk_level, 0) + 1
+    
+    # Count active alerts (incidents)
+    active_alerts = db.query(PanicAlert).filter(PanicAlert.status == "active").count()
+    total_alerts = db.query(PanicAlert).count()
+    
+    return {
+        "total_zones": total_zones,
+        "zone_types": zone_types,
+        "risk_levels": risk_levels,
+        "active_incidents": active_alerts,
+        "total_incidents": total_alerts,
+        "must_visit_places": zone_types.get("must_visit", 0)
+    }
 
 @app.post("/zones")
 def create_zone(
@@ -453,6 +500,63 @@ def create_zone(
     db.refresh(db_zone)
     
     return {"status": "created", "zone_id": db_zone.zone_id}
+
+@app.get("/must_visit_places")
+def get_must_visit_places(
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+    radius_km: float = 50.0,
+    db: Session = Depends(get_db)
+):
+    """
+    Get must-visit tourist attractions
+    If latitude/longitude provided, returns places within radius_km
+    Otherwise returns all must-visit places
+    """
+    import json
+    must_visit_zones = db.query(Zone).filter(Zone.zone_type == "must_visit").all()
+    
+    result = []
+    for zone in must_visit_zones:
+        coords = json.loads(zone.coordinates) if zone.coordinates else []
+        # Calculate center point for the zone
+        if coords and len(coords) > 0:
+            lat_sum = sum(coord[1] for coord in coords)
+            lon_sum = sum(coord[0] for coord in coords)
+            center_lat = lat_sum / len(coords)
+            center_lon = lon_sum / len(coords)
+        else:
+            center_lat = 0
+            center_lon = 0
+        
+        # If location provided, filter by distance
+        if latitude is not None and longitude is not None:
+            # Simple distance calculation (approximate)
+            distance = ((latitude - center_lat) ** 2 + (longitude - center_lon) ** 2) ** 0.5
+            # Convert to approximate km (1 degree ≈ 111 km)
+            distance_km = distance * 111
+            
+            if distance_km > radius_km:
+                continue
+        else:
+            distance_km = None
+            
+        result.append({
+            "id": zone.id,
+            "zone_id": zone.zone_id,
+            "name": zone.name,
+            "latitude": center_lat,
+            "longitude": center_lon,
+            "coordinates": coords,
+            "description": f"Popular tourist attraction - {zone.name}",
+            "distance_km": round(distance_km, 2) if distance_km is not None else None
+        })
+    
+    # Sort by distance if location provided
+    if latitude is not None and longitude is not None:
+        result.sort(key=lambda x: x['distance_km'] if x['distance_km'] is not None else float('inf'))
+    
+    return result
 
 @app.get("/police_stations")
 def get_police_stations(db: Session = Depends(get_db)):

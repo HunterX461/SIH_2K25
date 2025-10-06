@@ -152,7 +152,11 @@ class ApiService {
   }
 
   // Zones
-  async getZones(token?: string) {
+  async getZones(zone_type?: string, token?: string) {
+    let endpoint = '/zones';
+    if (zone_type) {
+      endpoint += `?zone_type=${zone_type}`;
+    }
     return this.request<
       {
         zone_id: string;
@@ -162,7 +166,20 @@ class ApiService {
         color: string;
         coordinates: number[][];
       }[]
-    >('/zones', {
+    >(endpoint, {
+      token,
+    });
+  }
+
+  async getZoneStatistics(token?: string) {
+    return this.request<{
+      total_zones: number;
+      zone_types: { [key: string]: number };
+      risk_levels: { [key: string]: number };
+      active_incidents: number;
+      total_incidents: number;
+      must_visit_places: number;
+    }>('/zones/statistics', {
       token,
     });
   }
@@ -261,6 +278,40 @@ class ApiService {
       method: 'PUT',
       token,
       body: { alert_id, status },
+    });
+  }
+
+  // Get must-visit places
+  async getMustVisitPlaces(
+    latitude?: number,
+    longitude?: number,
+    radius_km?: number,
+    token?: string
+  ) {
+    let endpoint = '/must_visit_places';
+    const params = new URLSearchParams();
+    
+    if (latitude !== undefined) params.append('latitude', latitude.toString());
+    if (longitude !== undefined) params.append('longitude', longitude.toString());
+    if (radius_km !== undefined) params.append('radius_km', radius_km.toString());
+    
+    if (params.toString()) {
+      endpoint += `?${params.toString()}`;
+    }
+    
+    return this.request<
+      {
+        id: number;
+        zone_id: string;
+        name: string;
+        latitude: number;
+        longitude: number;
+        coordinates: number[][];
+        description: string;
+        distance_km?: number;
+      }[]
+    >(endpoint, {
+      token,
     });
   }
 }
