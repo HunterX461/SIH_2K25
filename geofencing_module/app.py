@@ -71,6 +71,16 @@ class PoliceStation(Base):
     latitude = Column(Float)
     longitude = Column(Float)
 
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, index=True)
+    token = Column(String, unique=True, index=True)
+    expires_at = Column(DateTime)
+    used = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 # Create tables
 Base.metadata.create_all(bind=engine)
 
@@ -133,6 +143,13 @@ class ZoneCreate(BaseModel):
 class SOSStatusUpdate(BaseModel):
     alert_id: int
     status: str  # active, resolved, cancelled
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+class PasswordResetConfirm(BaseModel):
+    token: str
+    new_password: str
 
 # Authentication functions
 def verify_password(plain_password, hashed_password):
@@ -250,6 +267,64 @@ def login_user(user: UserLogin, db: Session = Depends(get_db)):
         "email": db_user.email
     }
 
+@app.post("/password-reset/request")
+def request_password_reset(request: PasswordResetRequest, db: Session = Depends(get_db)):
+    """Request a password reset token"""
+    user = db.query(Tourist).filter(Tourist.email == request.email).first()
+    if not user:
+        # Don't reveal if email exists or not for security
+        return {"status": "success", "message": "If the email exists, a reset token will be sent"}
+    
+    if user.is_guest:
+        raise HTTPException(status_code=400, detail="Guest users cannot reset passwords")
+    
+    # Generate reset token
+    import secrets
+    reset_token = secrets.token_urlsafe(32)
+    expires_at = datetime.utcnow() + timedelta(hours=1)
+    
+    # Store token in database
+    db_token = PasswordResetToken(
+        email=request.email,
+        token=reset_token,
+        expires_at=expires_at
+    )
+    db.add(db_token)
+    db.commit()
+    
+    # In production, send email with reset link
+    # For now, return the token (remove this in production)
+    return {
+        "status": "success",
+        "message": "Password reset token generated",
+        "token": reset_token,  # Remove in production
+        "expires_at": expires_at.isoformat()
+    }
+
+@app.post("/password-reset/confirm")
+def confirm_password_reset(request: PasswordResetConfirm, db: Session = Depends(get_db)):
+    """Reset password using token"""
+    # Find valid token
+    token = db.query(PasswordResetToken).filter(
+        PasswordResetToken.token == request.token,
+        PasswordResetToken.used == False,
+        PasswordResetToken.expires_at > datetime.utcnow()
+    ).first()
+    
+    if not token:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+    
+    # Update user password
+    user = db.query(Tourist).filter(Tourist.email == token.email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    user.password_hash = get_password_hash(request.new_password)
+    token.used = True
+    db.commit()
+    
+    return {"status": "success", "message": "Password reset successfully"}
+
 @app.get("/me")
 def get_current_tourist(current_user: Tourist = Depends(get_current_user)):
     return {
@@ -260,7 +335,8 @@ def get_current_tourist(current_user: Tourist = Depends(get_current_user)):
         "latitude": current_user.latitude,
         "longitude": current_user.longitude,
         "is_guest": current_user.is_guest,
-        "wallet_address": current_user.wallet_address
+        "wallet_address": current_user.wallet_address,
+        "status": current_user.status
     }
 
 @app.post("/update_location")
@@ -287,14 +363,33 @@ def update_location(
     db.commit()
     
     # Check if user is in any danger zones
-    zones = db.query(Zone).all()
+    import json
+    zones = db.query(Zone).filter(Zone.zone_type == "risk").all()
     current_zone = None
     in_danger_zone = False
+    danger_zone_info = None
     
     for zone in zones:
-        # Simple point-in-polygon check would go here
-        # For now, checking zone risk level
-        pass
+        # Simple bounding box check for zone proximity
+        coords = json.loads(zone.coordinates) if zone.coordinates else []
+        if coords and len(coords) >= 2:
+            # Get min/max bounds
+            lats = [c[1] for c in coords]
+            lons = [c[0] for c in coords]
+            min_lat, max_lat = min(lats), max(lats)
+            min_lon, max_lon = min(lons), max(lons)
+            
+            # Check if point is within bounding box
+            if (min_lat <= location.latitude <= max_lat and 
+                min_lon <= location.longitude <= max_lon):
+                in_danger_zone = True
+                current_zone = zone.name
+                danger_zone_info = {
+                    "zone_name": zone.name,
+                    "risk_level": zone.risk_level,
+                    "zone_id": zone.zone_id
+                }
+                break
     
     return {
         "status": "success",
@@ -302,7 +397,9 @@ def update_location(
         "longitude": location.longitude,
         "tourist_id": current_user.id,
         "user_status": current_user.status,
-        "in_danger_zone": in_danger_zone
+        "in_danger_zone": in_danger_zone,
+        "current_zone": current_zone,
+        "danger_zone_info": danger_zone_info
     }
 
 @app.get("/tourists/locations")

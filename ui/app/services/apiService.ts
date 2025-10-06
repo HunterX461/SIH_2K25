@@ -102,8 +102,31 @@ class ApiService {
       longitude?: number;
       is_guest: boolean;
       wallet_address?: string;
+      status?: string;
     }>('/me', {
       token,
+    });
+  }
+
+  async requestPasswordReset(email: string) {
+    return this.request<{
+      status: string;
+      message: string;
+      token?: string;
+      expires_at?: string;
+    }>('/password-reset/request', {
+      method: 'POST',
+      body: { email },
+    });
+  }
+
+  async confirmPasswordReset(token: string, new_password: string) {
+    return this.request<{
+      status: string;
+      message: string;
+    }>('/password-reset/confirm', {
+      method: 'POST',
+      body: { token, new_password },
     });
   }
 
@@ -114,6 +137,14 @@ class ApiService {
       latitude: number;
       longitude: number;
       tourist_id: number;
+      user_status: string;
+      in_danger_zone: boolean;
+      current_zone?: string;
+      danger_zone_info?: {
+        zone_name: string;
+        risk_level: string;
+        zone_id: string;
+      };
     }>('/update_location', {
       method: 'POST',
       token,
