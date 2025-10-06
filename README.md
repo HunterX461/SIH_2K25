@@ -27,7 +27,16 @@
 **Documentation:**
 - [NEW_FEATURES_GUIDE.md](NEW_FEATURES_GUIDE.md) - Complete feature documentation
 - [IMPLEMENTATION_COMPLETE.md](IMPLEMENTATION_COMPLETE.md) - Implementation summary
+- [TEST_USER_CREDENTIALS.md](TEST_USER_CREDENTIALS.md) - 5 test users for testing
 - Run `./test_new_features.sh` for automated testing
+
+**Quick Test Login:**
+```bash
+# Use pre-created test users (no registration needed)
+curl -X POST http://localhost:8000/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"testuser1@example.com","password":"Test@123"}'
+```
 
 ---
 

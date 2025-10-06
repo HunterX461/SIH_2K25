@@ -5,7 +5,7 @@ Run this script once to set up initial data for the Tourist Safety System
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import json
-from app import Base, Zone, PoliceStation
+from app import Base, Zone, PoliceStation, Tourist
 
 # Database setup
 SQLALCHEMY_DATABASE_URL = "sqlite:///./tourists.db"
@@ -211,11 +211,94 @@ def seed_database():
         print(f"  - {len(zones)} zones added")
         print(f"  - {len(police_stations)} police stations added")
         
+        # Seed test users for testing
+        seed_test_users(db)
+        
     except Exception as e:
         print(f"\n✗ Error seeding database: {e}")
         db.rollback()
     finally:
         db.close()
+
+def seed_test_users(db):
+    """Create 5 test user accounts with known credentials for testing"""
+    from passlib.context import CryptContext
+    
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    
+    test_users = [
+        {
+            "name": "Test User 1",
+            "email": "testuser1@example.com",
+            "password": "Test@123",
+            "emergency_contact": "+91-9876543210"
+        },
+        {
+            "name": "Test User 2",
+            "email": "testuser2@example.com",
+            "password": "Test@456",
+            "emergency_contact": "+91-9876543211"
+        },
+        {
+            "name": "Test User 3",
+            "email": "testuser3@example.com",
+            "password": "Test@789",
+            "emergency_contact": "+91-9876543212"
+        },
+        {
+            "name": "Test User 4",
+            "email": "testuser4@example.com",
+            "password": "Test@321",
+            "emergency_contact": "+91-9876543213"
+        },
+        {
+            "name": "Test User 5",
+            "email": "testuser5@example.com",
+            "password": "Test@654",
+            "emergency_contact": "+91-9876543214"
+        }
+    ]
+    
+    print("\nSeeding test users...")
+    created_count = 0
+    skipped_count = 0
+    
+    for user_data in test_users:
+        # Check if user already exists
+        existing_user = db.query(Tourist).filter(Tourist.email == user_data["email"]).first()
+        if existing_user:
+            skipped_count += 1
+            continue
+        
+        # Create new user
+        hashed_password = pwd_context.hash(user_data["password"])
+        new_user = Tourist(
+            name=user_data["name"],
+            email=user_data["email"],
+            password_hash=hashed_password,
+            emergency_contact=user_data["emergency_contact"],
+            is_guest=False
+        )
+        db.add(new_user)
+        print(f"  Added test user: {user_data['email']}")
+        created_count += 1
+    
+    if created_count > 0:
+        db.commit()
+        print(f"  ✓ {created_count} test users created")
+    
+    if skipped_count > 0:
+        print(f"  ⚠ {skipped_count} test users already existed")
+    
+    if created_count > 0:
+        print("\n" + "="*60)
+        print("TEST USER CREDENTIALS")
+        print("="*60)
+        for i, user_data in enumerate(test_users, 1):
+            print(f"  User {i}: {user_data['email']} / {user_data['password']}")
+        print("="*60)
+        print("See TEST_USER_CREDENTIALS.md for detailed usage examples")
+        print("="*60)
 
 if __name__ == "__main__":
     print("Starting database seed...")

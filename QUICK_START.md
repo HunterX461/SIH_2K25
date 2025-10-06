@@ -39,7 +39,21 @@ curl http://localhost:8000/
 
 **Expected:** All 11 tests should pass ✓
 
-### 3. Explore the Features
+### 3. Use Test Credentials
+
+**5 test users are automatically created for testing:**
+
+| Email | Password | Contact |
+|-------|----------|---------|
+| testuser1@example.com | Test@123 | +91-9876543210 |
+| testuser2@example.com | Test@456 | +91-9876543211 |
+| testuser3@example.com | Test@789 | +91-9876543212 |
+| testuser4@example.com | Test@321 | +91-9876543213 |
+| testuser5@example.com | Test@654 | +91-9876543214 |
+
+**See [TEST_USER_CREDENTIALS.md](TEST_USER_CREDENTIALS.md) for complete usage examples.**
+
+### 4. Explore the Features
 
 #### A. Must-Visit Places
 
@@ -57,13 +71,13 @@ curl "http://localhost:8000/must_visit_places?latitude=28.6139&longitude=77.2090
 curl http://localhost:8000/zones/statistics | jq .
 ```
 
-#### C. Register & Test Authentication
+#### C. Test Authentication with Pre-Created Users
 
 ```bash
-# Register a user
-curl -X POST http://localhost:8000/register \
+# Login with test user (no registration needed)
+curl -X POST http://localhost:8000/login \
   -H "Content-Type: application/json" \
-  -d '{"name":"Demo User","email":"demo@example.com","password":"demo123"}' | jq .
+  -d '{"email":"testuser1@example.com","password":"Test@123"}' | jq .
 
 # Save the token from response
 TOKEN="<paste-token-here>"
