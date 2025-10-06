@@ -315,6 +315,29 @@ def get_all_tourist_locations(db: Session = Depends(get_db)):
         for tourist in tourists
     ]
 
+@app.get("/tourists")
+def get_all_tourists(db: Session = Depends(get_db)):
+    """Get all active tourists with live location data (updated within last 5 minutes)"""
+    cutoff_time = datetime.utcnow() - timedelta(minutes=5)
+    tourists = db.query(Tourist).filter(
+        Tourist.latitude.isnot(None),
+        Tourist.longitude.isnot(None),
+        Tourist.created_at >= cutoff_time
+    ).all()
+    
+    return [
+        {
+            "id": tourist.id,
+            "name": tourist.name,
+            "latitude": tourist.latitude,
+            "longitude": tourist.longitude,
+            "last_updated": tourist.created_at.isoformat(),
+            "status": tourist.status or "idle",
+            "emergency_contact": tourist.emergency_contact
+        }
+        for tourist in tourists
+    ]
+
 @app.post("/sos")
 def create_sos_alert(
     sos: SOSRequest,
