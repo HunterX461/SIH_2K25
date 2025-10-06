@@ -36,6 +36,9 @@ export default function MapsScreen() {
     longitudeDelta: 0.5,
   });
   const [zones, setZones] = useState<Zone[]>([]);
+  const [allTourists, setAllTourists] = useState<Tourist[]>([]);
+  const [safetyZones, setSafetyZones] = useState<any[]>([]);
+  const [dangerZones, setDangerZones] = useState<any[]>([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -52,6 +55,32 @@ export default function MapsScreen() {
           latitudeDelta: 0.05,
           longitudeDelta: 0.05,
         });
+
+        // Start watching location and auto-update to backend
+        watchId = await Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.High,
+            timeInterval: 30000, // Every 30 seconds
+            distanceInterval: 50, // Or every 50 meters
+          },
+          async (newLocation) => {
+            if (isMounted) {
+              setLocation(newLocation);
+              // Auto-update location to backend
+              if (user?.token) {
+                try {
+                  await apiService.updateLocation(
+                    user.token,
+                    newLocation.coords.latitude,
+                    newLocation.coords.longitude
+                  );
+                } catch (error) {
+                  console.error('Failed to update location:', error);
+                }
+              }
+            }
+          }
+        );
       }
     };
 
@@ -60,22 +89,52 @@ export default function MapsScreen() {
         const data = await apiService.getZones(user?.token);
         if (isMounted) {
           setZones(data);
+          // Separate zones by risk level
+          const safe = data.filter(z => z.risk_level === 'normal');
+          const danger = data.filter(z => z.risk_level === 'high' || z.risk_level === 'medium');
+          
+          // Convert to circle format (simplified - using first coordinate)
+          setSafetyZones(safe.map(z => ({
+            latitude: z.coordinates[0]?.[1] || 0,
+            longitude: z.coordinates[0]?.[0] || 0,
+            radius: 500
+          })));
+          setDangerZones(danger.map(z => ({
+            latitude: z.coordinates[0]?.[1] || 0,
+            longitude: z.coordinates[0]?.[0] || 0,
+            radius: 500
+          })));
         }
       } catch (error) {
         console.error("Failed to fetch zones:", error);
       }
     };
+
+    const fetchTourists = async () => {
+      try {
+        const data = await apiService.getAllTouristLocations(user?.token);
+        if (isMounted) {
+          setAllTourists(data.filter(t => t.latitude !== null && t.longitude !== null));
+        }
+      } catch (error) {
+        console.error("Failed to fetch tourists:", error);
+      }
+    };
     
     requestLocationPermission();
     fetchZones();
+    fetchTourists();
+    
     const zonesFetchInterval = setInterval(fetchZones, 30000);
+    const touristFetchInterval = setInterval(fetchTourists, 10000); // Every 10 seconds
 
     return () => {
       isMounted = false;
       if (watchId) watchId.remove();
+      clearInterval(zonesFetchInterval);
       clearInterval(touristFetchInterval);
     };
-  }, []);
+  }, [user?.token]);
   
   const centerOnUser = () => {
       if (location && mapRef.current) {

@@ -251,6 +251,7 @@ def update_location(
 ):
     current_user.latitude = location.latitude
     current_user.longitude = location.longitude
+    current_user.created_at = datetime.utcnow()  # Update timestamp to track active users
     db.commit()
     
     # Check if user is in any danger zones
@@ -268,6 +269,27 @@ def update_location(
         "longitude": location.longitude,
         "tourist_id": current_user.id
     }
+
+@app.get("/tourists/locations")
+def get_all_tourist_locations(db: Session = Depends(get_db)):
+    """Get all active tourist locations (updated within last 5 minutes)"""
+    cutoff_time = datetime.utcnow() - timedelta(minutes=5)
+    tourists = db.query(Tourist).filter(
+        Tourist.latitude.isnot(None),
+        Tourist.longitude.isnot(None),
+        Tourist.created_at >= cutoff_time
+    ).all()
+    
+    return [
+        {
+            "id": tourist.id,
+            "name": tourist.name,
+            "latitude": tourist.latitude,
+            "longitude": tourist.longitude,
+            "last_updated": tourist.created_at.isoformat()
+        }
+        for tourist in tourists
+    ]
 
 @app.post("/sos")
 def create_sos_alert(
