@@ -29,6 +29,18 @@ export interface DangerZone {
   warnings: string[];
 }
 
+export interface MustVisitPlace {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  radius: number;
+  category: string;
+  description: string;
+  highlights: string[];
+  rating: number;
+}
+
 export interface TouristProfile {
   id: string;
   name: string;
@@ -335,11 +347,154 @@ export const mockApiResponses = {
   ],
 };
 
+// Sample Must-Visit Places (Tourist Attractions)
+export const mustVisitPlaces: MustVisitPlace[] = [
+  {
+    id: '1',
+    name: 'Gateway of India',
+    latitude: 18.9220,
+    longitude: 72.8347,
+    radius: 300,
+    category: 'Monument',
+    description: 'Iconic waterfront monument built in 1924',
+    highlights: [
+      'Historic British colonial architecture',
+      'Beautiful Arabian Sea views',
+      'Boat rides to Elephanta Caves',
+      'Popular photography spot',
+    ],
+    rating: 4.5,
+  },
+  {
+    id: '2',
+    name: 'Marine Drive',
+    latitude: 18.9432,
+    longitude: 72.8235,
+    radius: 500,
+    category: 'Scenic Route',
+    description: 'Beautiful 3km long promenade along the coast',
+    highlights: [
+      'Known as "Queen\'s Necklace" at night',
+      'Perfect for evening walks',
+      'Street food vendors',
+      'Stunning sunset views',
+    ],
+    rating: 4.7,
+  },
+  {
+    id: '3',
+    name: 'Juhu Beach',
+    latitude: 19.0990,
+    longitude: 72.8265,
+    radius: 600,
+    category: 'Beach',
+    description: 'Famous beach with food stalls and entertainment',
+    highlights: [
+      'Popular Mumbai beach',
+      'Street food paradise',
+      'Celebrity spotting area',
+      'Beach activities and games',
+    ],
+    rating: 4.2,
+  },
+  {
+    id: '4',
+    name: 'Bandra Fort',
+    latitude: 19.0437,
+    longitude: 72.8209,
+    radius: 250,
+    category: 'Historic Site',
+    description: '17th century fort with sea views',
+    highlights: [
+      'Portuguese architecture',
+      'Panoramic sea views',
+      'Sunset photography spot',
+      'Historic significance',
+    ],
+    rating: 4.3,
+  },
+  {
+    id: '5',
+    name: 'Siddhivinayak Temple',
+    latitude: 19.0176,
+    longitude: 72.8300,
+    radius: 200,
+    category: 'Religious Site',
+    description: 'Famous Hindu temple dedicated to Lord Ganesha',
+    highlights: [
+      'Spiritual significance',
+      'Beautiful architecture',
+      'Cultural experience',
+      'Peaceful atmosphere',
+    ],
+    rating: 4.6,
+  },
+  {
+    id: '6',
+    name: 'Haji Ali Dargah',
+    latitude: 18.9830,
+    longitude: 72.8089,
+    radius: 300,
+    category: 'Religious Site',
+    description: 'Mosque and tomb on an islet in the Arabian Sea',
+    highlights: [
+      'Unique location on sea',
+      'Indo-Islamic architecture',
+      'Causeway walk during low tide',
+      'Cultural heritage site',
+    ],
+    rating: 4.5,
+  },
+];
+
+// Live tracking demo data
+export interface LiveTourist {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  status: 'idle' | 'moving' | 'emergency';
+  lastUpdate: string;
+  emergencyContact?: string;
+}
+
+export const liveTourists: LiveTourist[] = [
+  {
+    id: '1',
+    name: 'John Doe',
+    latitude: 19.076,
+    longitude: 72.8777,
+    status: 'idle',
+    lastUpdate: new Date().toISOString(),
+    emergencyContact: '+1-555-123-4567',
+  },
+  {
+    id: '2',
+    name: 'Maria Garcia',
+    latitude: 19.085,
+    longitude: 72.885,
+    status: 'moving',
+    lastUpdate: new Date().toISOString(),
+    emergencyContact: '+34-612-345-678',
+  },
+  {
+    id: '3',
+    name: 'Chen Wei',
+    latitude: 19.055,
+    longitude: 72.84,
+    status: 'idle',
+    lastUpdate: new Date().toISOString(),
+    emergencyContact: '+86-138-0000-0000',
+  },
+];
+
 // Default export containing all sample data
 export default {
   emergencyContacts,
   safetyZones,
   dangerZones,
+  mustVisitPlaces,
+  liveTourists,
   sampleTouristProfiles,
   sampleIncidentReports,
   safetyTips,

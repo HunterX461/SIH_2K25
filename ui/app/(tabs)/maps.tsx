@@ -7,6 +7,7 @@ import { useTranslation } from '../hooks/useTranslation';
 import { MapView, Marker, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useAuth } from '../contexts/AuthContext';
 import { apiService } from '../services/apiService';
+import { mustVisitPlaces } from '../data/sampleData';
 
 interface Tourist {
   id: number;
@@ -182,6 +183,15 @@ export default function MapsScreen() {
         {dangerZones.map((zone, index) => (
           <Circle key={`danger-${index}`} center={{ latitude: zone.latitude, longitude: zone.longitude }} radius={zone.radius} strokeColor="rgba(239, 68, 68, 0.8)" fillColor="rgba(239, 68, 68, 0.2)" />
         ))}
+        {mustVisitPlaces.map((place) => (
+          <Marker
+            key={`place-${place.id}`}
+            coordinate={{ latitude: place.latitude, longitude: place.longitude }}
+            title={`⭐ ${place.name}`}
+            description={`${place.category} • ${place.rating}★\n${place.description}`}
+            pinColor="green"
+          />
+        ))}
       </MapView>
       <View style={styles.controls}>
         <TouchableOpacity style={styles.controlButton} onPress={centerOnUser}>
@@ -195,6 +205,7 @@ export default function MapsScreen() {
         <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: 'blue' }]} /><Text style={styles.legendText}>Idle</Text></View>
         <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: '#22C55E' }]} /><Text style={styles.legendText}>{t('safe_zones')}</Text></View>
         <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: '#EF4444' }]} /><Text style={styles.legendText}>{t('danger_zones')}</Text></View>
+        <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: 'green' }]} /><Text style={styles.legendText}>Must-Visit ⭐</Text></View>
       </View>
     </View>
   );
