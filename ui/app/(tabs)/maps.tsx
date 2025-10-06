@@ -13,6 +13,8 @@ interface Tourist {
   name: string;
   latitude: number | null;
   longitude: number | null;
+  status?: string;
+  emergency_contact?: string;
 }
 
 interface Zone {
@@ -158,15 +160,22 @@ export default function MapsScreen() {
         showsUserLocation={true}
         showsMyLocationButton={false}
       >
-        {allTourists.map(tourist => (
-          <Marker
-            key={`tourist-${tourist.id}`}
-            coordinate={{ latitude: tourist.latitude!, longitude: tourist.longitude! }}
-            title={tourist.name}
-            description={`Tourist ID: ${tourist.id}`}
-            pinColor="blue"
-          />
-        ))}
+        {allTourists.map(tourist => {
+          // Color based on status: red for emergency, orange for moving, blue for idle
+          const pinColor = tourist.status === 'emergency' ? 'red' : 
+                          tourist.status === 'moving' ? 'orange' : 'blue';
+          const statusText = tourist.status === 'emergency' ? ' 🚨 EMERGENCY' : 
+                            tourist.status === 'moving' ? ' (Moving)' : ' (Idle)';
+          return (
+            <Marker
+              key={`tourist-${tourist.id}`}
+              coordinate={{ latitude: tourist.latitude!, longitude: tourist.longitude! }}
+              title={tourist.name + statusText}
+              description={`Tourist ID: ${tourist.id}${tourist.emergency_contact ? '\nContact: ' + tourist.emergency_contact : ''}`}
+              pinColor={pinColor}
+            />
+          );
+        })}
         {safetyZones.map((zone, index) => (
           <Circle key={`safe-${index}`} center={{ latitude: zone.latitude, longitude: zone.longitude }} radius={zone.radius} strokeColor="rgba(34, 197, 94, 0.8)" fillColor="rgba(34, 197, 94, 0.2)" />
         ))}
@@ -181,7 +190,9 @@ export default function MapsScreen() {
       </View>
       <View style={styles.legend}>
         <Text style={styles.legendTitle}>{t('map_legend')}</Text>
-        <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: 'blue' }]} /><Text style={styles.legendText}>Other Tourists</Text></View>
+        <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: 'red' }]} /><Text style={styles.legendText}>Emergency 🚨</Text></View>
+        <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: 'orange' }]} /><Text style={styles.legendText}>Moving</Text></View>
+        <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: 'blue' }]} /><Text style={styles.legendText}>Idle</Text></View>
         <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: '#22C55E' }]} /><Text style={styles.legendText}>{t('safe_zones')}</Text></View>
         <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: '#EF4444' }]} /><Text style={styles.legendText}>{t('danger_zones')}</Text></View>
       </View>

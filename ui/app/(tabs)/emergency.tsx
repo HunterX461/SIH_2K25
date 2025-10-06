@@ -17,6 +17,7 @@ export default function EmergencyScreen() {
   const [isEmergencyActive, setIsEmergencyActive] = useState(false);
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [countdown, setCountdown] = useState(0);
+  const [activeAlertId, setActiveAlertId] = useState<number | null>(null);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -114,9 +115,13 @@ export default function EmergencyScreen() {
       console.log('SOS sent:', result);
       
       if (mountedRef.current) {
+        setActiveAlertId(result.alert_id);
+        const nearbyInfo = result.nearby_tourists_alerted 
+          ? `\n\n${result.nearby_tourists_alerted} nearby tourists alerted!` 
+          : '';
         showAlert(
           'SOS Sent Successfully!',
-          `Your emergency contacts have been notified. Help is on the way!\n\nNearest station: ${result.nearest_police_station?.name || 'Unknown'}`
+          `Your emergency contacts have been notified. Help is on the way!\n\nNearest station: ${result.nearest_police_station?.name || 'Unknown'}${nearbyInfo}`
         );
       }
     } catch (error) {
@@ -127,10 +132,28 @@ export default function EmergencyScreen() {
     }
   };
 
-  const cancelEmergencyAlert = () => {
+  const cancelEmergencyAlert = async () => {
     const isConfirmed = Platform.OS === 'web'
       ? window.confirm('Are you sure you want to cancel the emergency alert?')
       : true;
+
+    const performCancel = async () => {
+      if (mountedRef.current) {
+        setIsEmergencyActive(false);
+        setCountdown(0);
+      }
+      
+      // Update alert status on backend
+      if (user?.token && activeAlertId) {
+        try {
+          await apiService.updateAlertStatus(user.token, activeAlertId, 'cancelled');
+          setActiveAlertId(null);
+          console.log('Alert cancelled successfully');
+        } catch (error) {
+          console.error('Error cancelling alert:', error);
+        }
+      }
+    };
 
     if (Platform.OS !== 'web') {
       Alert.alert(
@@ -140,20 +163,12 @@ export default function EmergencyScreen() {
           { text: 'No', style: 'cancel' },
           {
             text: 'Yes',
-            onPress: () => {
-              if (mountedRef.current) {
-                setIsEmergencyActive(false);
-                setCountdown(0);
-              }
-            }
+            onPress: performCancel
           }
         ]
       );
     } else if (isConfirmed) {
-      if (mountedRef.current) {
-        setIsEmergencyActive(false);
-        setCountdown(0);
-      }
+      await performCancel();
     }
   };
 

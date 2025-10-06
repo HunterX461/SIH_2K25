@@ -39,6 +39,7 @@ class Tourist(Base):
     is_guest = Column(Boolean, default=False)
     wallet_address = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    status = Column(String, default="idle")  # idle, moving, emergency
 
 class PanicAlert(Base):
     __tablename__ = "panic_alerts"
@@ -49,6 +50,8 @@ class PanicAlert(Base):
     longitude = Column(Float)
     message = Column(String, nullable=True)
     timestamp = Column(DateTime, default=datetime.utcnow)
+    status = Column(String, default="active")  # active, resolved, cancelled
+    resolved_at = Column(DateTime, nullable=True)
 
 class Zone(Base):
     __tablename__ = "zones"
@@ -126,6 +129,10 @@ class ZoneCreate(BaseModel):
     risk_level: str
     zone_type: str
     coordinates: List[List[float]]
+
+class SOSStatusUpdate(BaseModel):
+    alert_id: int
+    status: str  # active, resolved, cancelled
 
 # Authentication functions
 def verify_password(plain_password, hashed_password):
@@ -249,25 +256,40 @@ def update_location(
     current_user: Tourist = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    # Calculate if user is moving (if previous location exists)
+    is_moving = False
+    if current_user.latitude and current_user.longitude:
+        distance = ((location.latitude - current_user.latitude) ** 2 + 
+                   (location.longitude - current_user.longitude) ** 2) ** 0.5
+        is_moving = distance > 0.001  # Significant movement threshold
+    
     current_user.latitude = location.latitude
     current_user.longitude = location.longitude
     current_user.created_at = datetime.utcnow()  # Update timestamp to track active users
+    
+    # Update status based on movement (don't override emergency status)
+    if current_user.status != "emergency":
+        current_user.status = "moving" if is_moving else "idle"
+    
     db.commit()
     
     # Check if user is in any danger zones
     zones = db.query(Zone).all()
     current_zone = None
+    in_danger_zone = False
     
     for zone in zones:
         # Simple point-in-polygon check would go here
-        # For now, returning the zone info
+        # For now, checking zone risk level
         pass
     
     return {
         "status": "success",
         "latitude": location.latitude,
         "longitude": location.longitude,
-        "tourist_id": current_user.id
+        "tourist_id": current_user.id,
+        "user_status": current_user.status,
+        "in_danger_zone": in_danger_zone
     }
 
 @app.get("/tourists/locations")
@@ -286,7 +308,9 @@ def get_all_tourist_locations(db: Session = Depends(get_db)):
             "name": tourist.name,
             "latitude": tourist.latitude,
             "longitude": tourist.longitude,
-            "last_updated": tourist.created_at.isoformat()
+            "last_updated": tourist.created_at.isoformat(),
+            "status": tourist.status or "idle",
+            "emergency_contact": tourist.emergency_contact
         }
         for tourist in tourists
     ]
@@ -297,12 +321,18 @@ def create_sos_alert(
     current_user: Tourist = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    # Update user status to emergency
+    current_user.status = "emergency"
+    current_user.latitude = sos.latitude
+    current_user.longitude = sos.longitude
+    
     # Create panic alert
     alert = PanicAlert(
         tourist_id=current_user.id,
         latitude=sos.latitude,
         longitude=sos.longitude,
-        message=sos.message
+        message=sos.message,
+        status="active"
     )
     db.add(alert)
     db.commit()
@@ -327,11 +357,31 @@ def create_sos_alert(
                 "longitude": station.longitude
             }
     
+    # Find nearby tourists (within ~5km)
+    nearby_tourists = db.query(Tourist).filter(
+        Tourist.id != current_user.id,
+        Tourist.latitude.isnot(None),
+        Tourist.longitude.isnot(None)
+    ).all()
+    
+    alerted_tourists = []
+    for tourist in nearby_tourists:
+        distance = ((sos.latitude - tourist.latitude) ** 2 + 
+                   (sos.longitude - tourist.longitude) ** 2) ** 0.5
+        if distance < 0.05:  # Approximately 5km
+            alerted_tourists.append({
+                "id": tourist.id,
+                "name": tourist.name,
+                "distance_km": round(distance * 111, 2)  # Convert to km
+            })
+    
     return {
         "status": "sent",
         "alert_id": alert.id,
         "encrypted_message": encrypted_msg,
         "nearest_police_station": nearest_station,
+        "nearby_tourists_alerted": len(alerted_tourists),
+        "nearby_tourists": alerted_tourists[:5],  # Return max 5
         "timestamp": alert.timestamp.isoformat()
     }
 
@@ -409,10 +459,70 @@ def get_alert_history(
             "latitude": alert.latitude,
             "longitude": alert.longitude,
             "message": alert.message,
-            "timestamp": alert.timestamp.isoformat()
+            "status": alert.status or "active",
+            "timestamp": alert.timestamp.isoformat(),
+            "resolved_at": alert.resolved_at.isoformat() if alert.resolved_at else None
         }
         for alert in alerts
     ]
+
+@app.get("/alerts/active")
+def get_active_alerts(db: Session = Depends(get_db)):
+    """Get all active SOS alerts for authorities/nearby users"""
+    alerts = db.query(PanicAlert).filter(
+        PanicAlert.status == "active"
+    ).order_by(PanicAlert.timestamp.desc()).limit(50).all()
+    
+    result = []
+    for alert in alerts:
+        tourist = db.query(Tourist).filter(Tourist.id == alert.tourist_id).first()
+        if tourist:
+            result.append({
+                "id": alert.id,
+                "tourist_id": tourist.id,
+                "tourist_name": tourist.name,
+                "latitude": alert.latitude,
+                "longitude": alert.longitude,
+                "message": alert.message,
+                "emergency_contact": tourist.emergency_contact,
+                "timestamp": alert.timestamp.isoformat(),
+                "duration_minutes": int((datetime.utcnow() - alert.timestamp).total_seconds() / 60)
+            })
+    
+    return result
+
+@app.put("/alerts/{alert_id}/status")
+def update_alert_status(
+    alert_id: int,
+    status_update: SOSStatusUpdate,
+    current_user: Tourist = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update SOS alert status (resolve or cancel)"""
+    alert = db.query(PanicAlert).filter(PanicAlert.id == alert_id).first()
+    
+    if not alert:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    
+    # Only the tourist who created the alert can update it
+    if alert.tourist_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to update this alert")
+    
+    alert.status = status_update.status
+    if status_update.status in ["resolved", "cancelled"]:
+        alert.resolved_at = datetime.utcnow()
+        # Reset tourist status if they're still in emergency mode
+        if current_user.status == "emergency":
+            current_user.status = "idle"
+    
+    db.commit()
+    
+    return {
+        "status": "success",
+        "alert_id": alert.id,
+        "new_status": alert.status,
+        "resolved_at": alert.resolved_at.isoformat() if alert.resolved_at else None
+    }
 
 if __name__ == "__main__":
     import uvicorn

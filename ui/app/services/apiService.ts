@@ -137,6 +137,12 @@ class ApiService {
         latitude: number;
         longitude: number;
       } | null;
+      nearby_tourists_alerted?: number;
+      nearby_tourists?: Array<{
+        id: number;
+        name: string;
+        distance_km: number;
+      }>;
       timestamp: string;
     }>('/sos', {
       method: 'POST',
@@ -217,9 +223,44 @@ class ApiService {
         latitude: number;
         longitude: number;
         last_updated: string;
+        status: string;
+        emergency_contact?: string;
       }[]
     >('/tourists/locations', {
       token,
+    });
+  }
+
+  // Get active SOS alerts
+  async getActiveAlerts(token?: string) {
+    return this.request<
+      {
+        id: number;
+        tourist_id: number;
+        tourist_name: string;
+        latitude: number;
+        longitude: number;
+        message?: string;
+        emergency_contact?: string;
+        timestamp: string;
+        duration_minutes: number;
+      }[]
+    >('/alerts/active', {
+      token,
+    });
+  }
+
+  // Update SOS alert status
+  async updateAlertStatus(token: string, alert_id: number, status: string) {
+    return this.request<{
+      status: string;
+      alert_id: number;
+      new_status: string;
+      resolved_at?: string;
+    }>(`/alerts/${alert_id}/status`, {
+      method: 'PUT',
+      token,
+      body: { alert_id, status },
     });
   }
 }
