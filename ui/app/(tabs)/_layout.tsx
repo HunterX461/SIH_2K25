@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Shield, MapPin, User, TriangleAlert as AlertTriangle, Settings } from 'lucide-react-native';
+import { Shield, MapPin, User, TriangleAlert as AlertTriangle, Settings, Sparkles } from 'lucide-react-native';
 // --- 1. IMPORT THE HOOK TO READ THE TOURIST ID ---
 import { useGlobalSearchParams } from 'expo-router';
 
@@ -54,6 +54,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="places"
+        options={{
+          title: 'Places',
+          tabBarIcon: ({ size, color}) => (
+            <Sparkles size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
@@ -69,6 +78,12 @@ export default function TabLayout() {
           tabBarIcon: ({ size, color }) => (
             <Settings size={size} color={color} />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="maps.web"
+        options={{
+          href: null,
         }}
       />
     </Tabs>
