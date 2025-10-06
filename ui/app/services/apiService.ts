@@ -207,6 +207,21 @@ class ApiService {
       token,
     });
   }
+
+  // Get all tourist locations
+  async getAllTouristLocations(token?: string) {
+    return this.request<
+      {
+        id: number;
+        name: string;
+        latitude: number;
+        longitude: number;
+        last_updated: string;
+      }[]
+    >('/tourists/locations', {
+      token,
+    });
+  }
 }
 
 export const apiService = new ApiService();
