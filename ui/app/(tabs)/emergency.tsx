@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, Alert, Linking } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { TriangleAlert as AlertTriangle, Phone, MessageSquare, Shield, Clock } from 'lucide-react-native';
 import * as Location from 'expo-location';
@@ -157,6 +157,24 @@ export default function EmergencyScreen() {
     }
   };
 
+  const handleEmergencyCall = async () => {
+    const phoneNumber = '+917821873078';
+    const phoneUrl = `tel:${phoneNumber}`;
+    
+    try {
+      const canOpen = await Linking.canOpenURL(phoneUrl);
+      
+      if (canOpen) {
+        await Linking.openURL(phoneUrl);
+      } else {
+        showAlert('Error', 'Unable to make phone call. Please dial +91 7821873078 manually.');
+      }
+    } catch (error) {
+      console.error('Error making emergency call:', error);
+      showAlert('Error', 'Failed to initiate call. Please dial +91 7821873078 manually.');
+    }
+  };
+
   // The rest of your UI and styles are unchanged
   return (
     <View style={styles.container}>
@@ -190,6 +208,13 @@ export default function EmergencyScreen() {
           <Text style={styles.sosButtonText}>{isEmergencyActive ? t('alert_sent') : 'SOS'}</Text>
         </TouchableOpacity>
         <Text style={styles.sosInstructions}>{t('press_for_emergency_help')}</Text>
+        <TouchableOpacity
+          style={styles.emergencyCallButton}
+          onPress={handleEmergencyCall}
+        >
+          <Phone size={28} color="#FFFFFF" />
+          <Text style={styles.emergencyCallText}>Call Emergency: +91 7821873078</Text>
+        </TouchableOpacity>
       </View>
       <View style={styles.contactsSection}>
         <Text style={styles.sectionTitle}>{t('emergency_contacts')}</Text>
@@ -198,7 +223,7 @@ export default function EmergencyScreen() {
         ))}
       </View>
       <View style={styles.quickActions}>
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity style={styles.actionButton} onPress={handleEmergencyCall}>
           <Phone size={24} color="#DC2626" />
           <Text style={styles.actionButtonText}>{t('call_police')}</Text>
         </TouchableOpacity>
@@ -229,6 +254,8 @@ const styles = StyleSheet.create({
   sosButtonActive: { backgroundColor: '#7F1D1D' },
   sosButtonText: { fontSize: 24, fontWeight: 'bold', color: '#FFFFFF', marginTop: 12 },
   sosInstructions: { fontSize: 16, color: '#FCA5A5', textAlign: 'center', paddingHorizontal: 40 },
+  emergencyCallButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#7F1D1D', paddingHorizontal: 24, paddingVertical: 16, borderRadius: 12, marginTop: 20, gap: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4, elevation: 5 },
+  emergencyCallText: { fontSize: 18, fontWeight: '600', color: '#FFFFFF' },
   contactsSection: { flex: 1, backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 24, paddingHorizontal: 20 },
   sectionTitle: { fontSize: 20, fontWeight: '600', color: '#111827', marginBottom: 16 },
   quickActions: { flexDirection: 'row', backgroundColor: '#FFFFFF', paddingBottom: 20, paddingHorizontal: 20, gap: 12 },
