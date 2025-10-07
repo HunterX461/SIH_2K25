@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { Globe, Bell, Shield, CircleHelp as HelpCircle, LogOut } from 'lucide-react-native';
+import { Globe, Bell, Shield, CircleHelp as HelpCircle, LogOut, Moon, Sun } from 'lucide-react-native';
 import { useTranslation } from '../hooks/useTranslation';
 import { SettingsSection } from '../components/SettingsSection';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { router } from 'expo-router';
 
 export default function SettingsScreen() {
   const { t, changeLanguage, currentLanguage } = useTranslation();
   const { logout } = useAuth();
+  const { theme, toggleTheme, colors } = useTheme();
   const [settings, setSettings] = useState({
     notifications: true,
     locationTracking: true,
@@ -75,16 +77,29 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="dark" />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
       
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={styles.title}>{t('settings')}</Text>
-          <Text style={styles.subtitle}>{t('customize_your_experience')}</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t('settings')}</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t('customize_your_experience')}</Text>
         </View>
 
         <View style={styles.settingsContainer}>
+          {/* Theme */}
+          <SettingsSection title="Appearance" icon={theme === 'dark' ? Moon : Sun}>
+            <View style={styles.settingItem}>
+              <Text style={[styles.settingLabel, { color: colors.text }]}>Dark Mode</Text>
+              <Switch
+                value={theme === 'dark'}
+                onValueChange={toggleTheme}
+                trackColor={{ false: '#D1D5DB', true: '#DC2626' }}
+                thumbColor={'#FFFFFF'}
+              />
+            </View>
+          </SettingsSection>
+
           {/* Language & Accessibility */}
           <SettingsSection title={t('language_accessibility')} icon={Globe}>
             <View style={styles.settingItem}>
