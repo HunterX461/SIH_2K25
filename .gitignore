@@ -38,3 +38,7 @@ Thumbs.db
 .expo/
 .expo-shared/
 web-build/ui/package-lock.json
+
+# SQLite databases
+*.db
+geofencing_module/tourists.db
