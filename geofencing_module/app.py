@@ -39,6 +39,7 @@ class Tourist(Base):
     is_guest = Column(Boolean, default=False)
     wallet_address = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    last_updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     status = Column(String, default="idle")  # idle, moving, emergency
 
 class PanicAlert(Base):
@@ -354,7 +355,7 @@ def update_location(
     
     current_user.latitude = location.latitude
     current_user.longitude = location.longitude
-    current_user.created_at = datetime.utcnow()  # Update timestamp to track active users
+    current_user.last_updated = datetime.utcnow()  # Update timestamp to track active users
     
     # Update status based on movement (don't override emergency status)
     if current_user.status != "emergency":
@@ -409,7 +410,7 @@ def get_all_tourist_locations(db: Session = Depends(get_db)):
     tourists = db.query(Tourist).filter(
         Tourist.latitude.isnot(None),
         Tourist.longitude.isnot(None),
-        Tourist.created_at >= cutoff_time
+        Tourist.last_updated >= cutoff_time
     ).all()
     
     return [
@@ -418,7 +419,7 @@ def get_all_tourist_locations(db: Session = Depends(get_db)):
             "name": tourist.name,
             "latitude": tourist.latitude,
             "longitude": tourist.longitude,
-            "last_updated": tourist.created_at.isoformat(),
+            "last_updated": tourist.last_updated.isoformat() if tourist.last_updated else tourist.created_at.isoformat(),
             "status": tourist.status or "idle",
             "emergency_contact": tourist.emergency_contact
         }
@@ -432,7 +433,7 @@ def get_all_tourists(db: Session = Depends(get_db)):
     tourists = db.query(Tourist).filter(
         Tourist.latitude.isnot(None),
         Tourist.longitude.isnot(None),
-        Tourist.created_at >= cutoff_time
+        Tourist.last_updated >= cutoff_time
     ).all()
     
     return [

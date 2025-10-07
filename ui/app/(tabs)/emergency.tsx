@@ -190,6 +190,27 @@ export default function EmergencyScreen() {
     }
   };
 
+  const handleSendMessage = async () => {
+    const phoneNumber = '+917821873078';
+    const message = 'EMERGENCY: I need immediate assistance. Please help!';
+    const smsUrl = Platform.OS === 'ios' 
+      ? `sms:${phoneNumber}&body=${encodeURIComponent(message)}`
+      : `sms:${phoneNumber}?body=${encodeURIComponent(message)}`;
+    
+    try {
+      const canOpen = await Linking.canOpenURL(smsUrl);
+      
+      if (canOpen) {
+        await Linking.openURL(smsUrl);
+      } else {
+        showAlert('Error', 'Unable to open messaging app. Please send a message to +91 7821873078 manually.');
+      }
+    } catch (error) {
+      console.error('Error opening messaging app:', error);
+      showAlert('Error', 'Failed to open messaging app. Please send a message to +91 7821873078 manually.');
+    }
+  };
+
   // The rest of your UI and styles are unchanged
   return (
     <View style={styles.container}>
@@ -242,7 +263,7 @@ export default function EmergencyScreen() {
           <Phone size={24} color="#DC2626" />
           <Text style={styles.actionButtonText}>{t('call_police')}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity style={styles.actionButton} onPress={handleSendMessage}>
           <MessageSquare size={24} color="#DC2626" />
           <Text style={styles.actionButtonText}>{t('send_message')}</Text>
         </TouchableOpacity>

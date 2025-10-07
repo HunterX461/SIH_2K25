@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { Settings as SettingsIcon, Globe, Bell, Shield, Volume2, Type, CircleHelp as HelpCircle, LogOut } from 'lucide-react-native';
+import { Globe, Bell, Shield, CircleHelp as HelpCircle, LogOut, Moon, Sun } from 'lucide-react-native';
 import { useTranslation } from '../hooks/useTranslation';
 import { SettingsSection } from '../components/SettingsSection';
+import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { router } from 'expo-router';
 
 export default function SettingsScreen() {
   const { t, changeLanguage, currentLanguage } = useTranslation();
+  const { logout } = useAuth();
+  const { theme, toggleTheme, colors } = useTheme();
   const [settings, setSettings] = useState({
     notifications: true,
     locationTracking: true,
@@ -34,40 +39,67 @@ export default function SettingsScreen() {
     handleSettingChange('fontSize', sizes[nextIndex]);
   };
 
-  const handleLogout = () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Sign Out', style: 'destructive', onPress: () => {
-          Alert.alert('Signed Out', 'You have been successfully signed out.');
-        }}
-      ]
-    );
+  const handleLogout = async () => {
+    const confirmed = Platform.OS === 'web'
+      ? window.confirm('Are you sure you want to sign out?')
+      : true;
+
+    if (Platform.OS !== 'web') {
+      Alert.alert(
+        'Sign Out',
+        'Are you sure you want to sign out?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Sign Out', 
+            style: 'destructive', 
+            onPress: async () => {
+              await logout();
+              router.replace('/login');
+            }
+          }
+        ]
+      );
+    } else if (confirmed) {
+      await logout();
+      router.replace('/login');
+    }
   };
 
   const getLanguageName = (lang: string) => {
-    const names = { en: 'English', es: 'Español', fr: 'Français' };
+    const names: { [key: string]: string } = { en: 'English', es: 'Español', fr: 'Français' };
     return names[lang] || lang;
   };
 
   const getFontSizeLabel = (size: string) => {
-    const labels = { small: 'Small', medium: 'Medium', large: 'Large' };
+    const labels: { [key: string]: string } = { small: 'Small', medium: 'Medium', large: 'Large' };
     return labels[size] || size;
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="dark" />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
       
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={styles.title}>{t('settings')}</Text>
-          <Text style={styles.subtitle}>{t('customize_your_experience')}</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t('settings')}</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t('customize_your_experience')}</Text>
         </View>
 
         <View style={styles.settingsContainer}>
+          {/* Theme */}
+          <SettingsSection title="Appearance" icon={theme === 'dark' ? Moon : Sun}>
+            <View style={styles.settingItem}>
+              <Text style={[styles.settingLabel, { color: colors.text }]}>Dark Mode</Text>
+              <Switch
+                value={theme === 'dark'}
+                onValueChange={toggleTheme}
+                trackColor={{ false: '#D1D5DB', true: '#DC2626' }}
+                thumbColor={'#FFFFFF'}
+              />
+            </View>
+          </SettingsSection>
+
           {/* Language & Accessibility */}
           <SettingsSection title={t('language_accessibility')} icon={Globe}>
             <View style={styles.settingItem}>

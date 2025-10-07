@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Platform, Linking } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { User, CreditCard as Edit, MapPin, LogOut } from 'lucide-react-native';
+import { User, CreditCard as Edit, MapPin, LogOut, Phone, Shield, Bell } from 'lucide-react-native';
 import { useTranslation } from '../hooks/useTranslation';
 import { ProfileSection } from '../components/ProfileSection';
 import { TouristIdCard } from '../components/TouristIdCard';
@@ -118,6 +118,31 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleEmergencyCall = async () => {
+    const phoneNumber = profile.emergencyContact !== 'Not set' ? profile.emergencyContact : '+917821873078';
+    const phoneUrl = `tel:${phoneNumber}`;
+    
+    try {
+      const canOpen = await Linking.canOpenURL(phoneUrl);
+      if (canOpen) {
+        await Linking.openURL(phoneUrl);
+      } else {
+        Alert.alert('Error', `Unable to make call. Please dial ${phoneNumber} manually.`);
+      }
+    } catch (error) {
+      console.error('Error making call:', error);
+      Alert.alert('Error', `Failed to initiate call. Please dial ${phoneNumber} manually.`);
+    }
+  };
+
+  const navigateToEmergency = () => {
+    router.push('/(tabs)/emergency');
+  };
+
+  const navigateToSettings = () => {
+    router.push('/(tabs)/settings');
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
@@ -143,6 +168,25 @@ export default function ProfileScreen() {
         </View>
 
         <TouristIdCard profile={profile} />
+
+        {/* Quick Actions */}
+        <View style={styles.quickActionsContainer}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <View style={styles.quickActions}>
+            <TouchableOpacity style={styles.quickActionCard} onPress={navigateToEmergency}>
+              <Shield size={24} color="#DC2626" />
+              <Text style={styles.quickActionText}>Emergency SOS</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.quickActionCard} onPress={handleEmergencyCall}>
+              <Phone size={24} color="#059669" />
+              <Text style={styles.quickActionText}>Call Contact</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.quickActionCard} onPress={navigateToSettings}>
+              <Bell size={24} color="#7C3AED" />
+              <Text style={styles.quickActionText}>Settings</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
         <View style={styles.profileSections}>
           <ProfileSection 
@@ -213,6 +257,11 @@ const styles = StyleSheet.create({
   touristId: { fontSize: 16, color: '#6B7280', marginBottom: 16 },
   editButton: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#FEF2F2', borderRadius: 8, gap: 8 },
   editButtonText: { fontSize: 16, fontWeight: '600', color: '#DC2626' },
+  quickActionsContainer: { paddingHorizontal: 20, marginBottom: 24 },
+  sectionTitle: { fontSize: 20, fontWeight: '600', color: '#111827', marginBottom: 16 },
+  quickActions: { flexDirection: 'row', gap: 12 },
+  quickActionCard: { flex: 1, backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16, alignItems: 'center', gap: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
+  quickActionText: { fontSize: 12, fontWeight: '600', color: '#374151', textAlign: 'center' },
   profileSections: { paddingHorizontal: 20, gap: 16 },
   infoRow: { marginBottom: 16 },
   label: { fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 4 },

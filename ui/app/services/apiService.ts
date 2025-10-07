@@ -169,11 +169,11 @@ class ApiService {
         longitude: number;
       } | null;
       nearby_tourists_alerted?: number;
-      nearby_tourists?: Array<{
+      nearby_tourists?: {
         id: number;
         name: string;
         distance_km: number;
-      }>;
+      }[];
       timestamp: string;
     }>('/sos', {
       method: 'POST',

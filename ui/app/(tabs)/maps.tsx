@@ -4,7 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as Location from 'expo-location';
 import { Crosshair } from 'lucide-react-native';
 import { useTranslation } from '../hooks/useTranslation';
-import { MapView, Marker, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useAuth } from '../contexts/AuthContext';
 import { apiService } from '../services/apiService';
 
@@ -15,15 +15,6 @@ interface Tourist {
   longitude: number | null;
   status?: string;
   emergency_contact?: string;
-}
-
-interface Zone {
-  zone_id: string;
-  name: string;
-  risk_level: string;
-  zone_type: string;
-  color: string;
-  coordinates: number[][];
 }
 
 interface MustVisitPlace {
@@ -48,7 +39,6 @@ export default function MapsScreen() {
     latitudeDelta: 0.5,
     longitudeDelta: 0.5,
   });
-  const [zones, setZones] = useState<Zone[]>([]);
   const [allTourists, setAllTourists] = useState<Tourist[]>([]);
   const [safetyZones, setSafetyZones] = useState<any[]>([]);
   const [dangerZones, setDangerZones] = useState<any[]>([]);
@@ -102,7 +92,6 @@ export default function MapsScreen() {
       try {
         const data = await apiService.getZones(user?.token);
         if (isMounted) {
-          setZones(data);
           // Separate zones by risk level
           const safe = data.filter(z => z.risk_level === 'normal');
           const danger = data.filter(z => z.risk_level === 'high' || z.risk_level === 'medium');

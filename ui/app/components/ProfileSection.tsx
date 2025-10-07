@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Video as LucideIcon } from 'lucide-react-native';
+import type { LucideIcon } from 'lucide-react-native';
 
 interface ProfileSectionProps {
   title: string;
