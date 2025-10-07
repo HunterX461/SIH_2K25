@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Globe, Bell, Shield, CircleHelp as HelpCircle, LogOut } from 'lucide-react-native';
 import { useTranslation } from '../hooks/useTranslation';
 import { SettingsSection } from '../components/SettingsSection';
+import { useAuth } from '../contexts/AuthContext';
+import { router } from 'expo-router';
 
 export default function SettingsScreen() {
   const { t, changeLanguage, currentLanguage } = useTranslation();
+  const { logout } = useAuth();
   const [settings, setSettings] = useState({
     notifications: true,
     locationTracking: true,
@@ -34,17 +37,31 @@ export default function SettingsScreen() {
     handleSettingChange('fontSize', sizes[nextIndex]);
   };
 
-  const handleLogout = () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Sign Out', style: 'destructive', onPress: () => {
-          Alert.alert('Signed Out', 'You have been successfully signed out.');
-        }}
-      ]
-    );
+  const handleLogout = async () => {
+    const confirmed = Platform.OS === 'web'
+      ? window.confirm('Are you sure you want to sign out?')
+      : true;
+
+    if (Platform.OS !== 'web') {
+      Alert.alert(
+        'Sign Out',
+        'Are you sure you want to sign out?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Sign Out', 
+            style: 'destructive', 
+            onPress: async () => {
+              await logout();
+              router.replace('/login');
+            }
+          }
+        ]
+      );
+    } else if (confirmed) {
+      await logout();
+      router.replace('/login');
+    }
   };
 
   const getLanguageName = (lang: string) => {
