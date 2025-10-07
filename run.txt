@@ -1,0 +1,397 @@
+================================================================================
+           SMART TOURIST SAFETY APP - SETUP & RUN INSTRUCTIONS
+================================================================================
+
+📱 **Expo SDK Version**: SDK 53 (expo ^53.0.0)
+🎯 **React Native**: 0.79.5
+⚛️  **React**: 19.0.0
+
+================================================================================
+                              QUICK START GUIDE
+================================================================================
+
+## 1️⃣ INITIAL SETUP (After Cloning)
+
+### Step 1: Install Dependencies
+
+A. Frontend (React Native App):
+   ```bash
+   cd ui
+   npm install --legacy-peer-deps
+   ```
+   
+   Note: Use --legacy-peer-deps to resolve peer dependency conflicts.
+   Expected: ~1004 packages will be installed.
+
+B. Backend (Python FastAPI):
+   ```bash
+   cd geofencing_module
+   pip install -r requirements.txt
+   ```
+   
+   Or if you have system Python packages:
+   ```bash
+   sudo apt-get update
+   sudo apt-get install -y python3-shapely python3-geopy
+   pip install fastapi uvicorn sqlalchemy python-jose passlib bcrypt pydantic
+   ```
+
+### Step 2: Database Setup (Backend)
+
+The database (tourists.db) is already included. To reset or recreate:
+
+```bash
+cd geofencing_module
+
+# Option 1: Run migration for existing database
+python3 migrate_add_last_updated.py
+
+# Option 2: Recreate database from scratch
+rm tourists.db
+python3 -c "from app import Base, engine; Base.metadata.create_all(bind=engine)"
+python3 seed.py
+```
+
+### Step 3: Configure Environment (Optional)
+
+Create a .env file in the ui/ directory if you need custom API endpoint:
+
+```bash
+cd ui
+echo "EXPO_PUBLIC_API_BASE=http://YOUR_IP_ADDRESS:8000" > .env
+```
+
+Default backend URL: http://10.232.121.138:8000
+
+================================================================================
+                            RUNNING THE APPLICATION
+================================================================================
+
+## 2️⃣ START BACKEND SERVER (Terminal 1)
+
+```bash
+cd geofencing_module
+python3 -m uvicorn app:app --host 0.0.0.0 --port 8000 --reload
+```
+
+Expected output:
+✅ INFO:     Uvicorn running on http://0.0.0.0:8000
+✅ INFO:     Application startup complete.
+
+Backend will be available at: http://localhost:8000
+API Docs: http://localhost:8000/docs
+
+## 3️⃣ START FRONTEND APP (Terminal 2)
+
+```bash
+cd ui
+npm run dev
+```
+
+Alternative commands:
+- `npm start` - Standard Expo start
+- `expo start` - If you have Expo CLI globally installed
+
+Expected output:
+✅ Starting Metro Bundler
+✅ Waiting on http://localhost:8081
+✅ Metro is running
+
+================================================================================
+                      ACCESSING THE APP ON YOUR DEVICE
+================================================================================
+
+## 4️⃣ OPTION A: Using Expo Go App (Recommended for Testing)
+
+### Setup:
+1. Install "Expo Go" app on your phone:
+   - iOS: https://apps.apple.com/app/expo-go/id982107779
+   - Android: https://play.google.com/store/apps/details?id=host.exp.exponent
+
+2. Make sure your phone and computer are on the same Wi-Fi network.
+
+### Scan QR Code:
+- Once Metro bundler starts, you'll see a QR code in the terminal
+- iOS: Open Camera app → Point at QR code → Tap notification
+- Android: Open Expo Go app → Tap "Scan QR Code" → Scan
+
+### Manual Connection (if QR doesn't work):
+- In terminal, press 's' to switch to connection string
+- Note the exp://YOUR_IP:8081 URL
+- Open Expo Go → Enter URL manually
+
+## 4️⃣ OPTION B: Using Simulator/Emulator
+
+### iOS Simulator (macOS only):
+```bash
+# In the Metro bundler terminal, press 'i'
+# Or run:
+npm run ios
+```
+
+Requires: Xcode and iOS Simulator installed
+
+### Android Emulator:
+```bash
+# Start Android Studio emulator first
+# In the Metro bundler terminal, press 'a'
+# Or run:
+npm run android
+```
+
+Requires: Android Studio with AVD configured
+
+## 4️⃣ OPTION C: Web Browser
+
+```bash
+# In the Metro bundler terminal, press 'w'
+# Or run:
+npm run web
+```
+
+Opens at: http://localhost:8081
+
+Note: Some native features (camera, haptics) won't work on web.
+
+================================================================================
+                              TEST CREDENTIALS
+================================================================================
+
+## 5️⃣ LOGIN TO THE APP
+
+Use these test credentials to login:
+
+**Test User 1:**
+- Email: test@gmail.com
+- Password: test123
+
+**Test User 2:**
+- Email: testuser1@example.com
+- Password: Test@123
+
+**Test User 3:**
+- Email: testuser2@example.com
+- Password: Test@123
+
+Or create a new account:
+1. Open the app
+2. Select "Register" tab
+3. Fill in your details
+4. Tap "Register"
+
+Guest Mode:
+1. Select "Guest" tab
+2. Enter name and email
+3. Tap "Continue as Guest"
+
+================================================================================
+                           TROUBLESHOOTING GUIDE
+================================================================================
+
+## Problem: "Cannot find module" or dependency errors
+
+Solution:
+```bash
+cd ui
+rm -rf node_modules package-lock.json
+npm install --legacy-peer-deps
+```
+
+## Problem: Backend not connecting / Network error
+
+Solution:
+1. Check if backend is running on port 8000
+2. Update API URL in ui/.env:
+   ```
+   EXPO_PUBLIC_API_BASE=http://YOUR_COMPUTER_IP:8000
+   ```
+3. Find your IP:
+   - macOS/Linux: `ifconfig | grep inet`
+   - Windows: `ipconfig`
+4. Use your local network IP (e.g., 192.168.1.x), not 127.0.0.1
+
+## Problem: Expo Go shows "Unable to resolve" error
+
+Solution:
+1. Clear Metro bundler cache:
+   ```bash
+   cd ui
+   npx expo start --clear
+   ```
+2. Restart Metro bundler (Ctrl+C then npm run dev again)
+
+## Problem: QR Code not scanning
+
+Solution:
+1. Make sure phone and computer are on same Wi-Fi
+2. Use manual connection string (press 's' in terminal)
+3. Try opening in browser: http://YOUR_IP:8081
+
+## Problem: Location permissions not working
+
+Solution:
+1. Go to phone Settings → Apps → Expo Go → Permissions
+2. Allow Location access
+3. Restart the app
+
+## Problem: Database errors (Backend)
+
+Solution:
+```bash
+cd geofencing_module
+# Backup existing database
+cp tourists.db tourists.db.backup
+# Run migration
+python3 migrate_add_last_updated.py
+# Or recreate from scratch
+rm tourists.db
+python3 -c "from app import Base, engine; Base.metadata.create_all(bind=engine)"
+python3 seed.py
+```
+
+================================================================================
+                              FEATURES TO TEST
+================================================================================
+
+## 6️⃣ KEY FEATURES TO EXPLORE
+
+1. **Home Screen**
+   - View safety score
+   - Try quick actions (Emergency SOS, Track Location, Emergency Contacts)
+   - Check recent alerts
+
+2. **Maps Screen**
+   - View your location on map
+   - See other tourists (blue/orange/red pins based on status)
+   - View must-visit places (gold star pins)
+   - See safety zones (green circles) and danger zones (red circles)
+   - Tap center button to focus on your location
+
+3. **Emergency Screen**
+   - Test SOS button (will prompt for confirmation)
+   - Try "Call Police" button (opens phone dialer)
+   - Try "Send Message" button (opens SMS with pre-filled message)
+   - Test cancel alert functionality
+
+4. **Profile Screen**
+   - View your Tourist ID card
+   - Try Quick Actions (Emergency SOS, Call Contact, Settings)
+   - Edit your profile information
+   - Test logout functionality
+
+5. **Settings Screen**
+   - Toggle Dark Mode (Moon/Sun icon)
+   - Change language (English/Spanish/French)
+   - Adjust font size
+   - Test logout button
+
+================================================================================
+                           DEVELOPMENT COMMANDS
+================================================================================
+
+## Useful Commands:
+
+### Frontend (ui/):
+```bash
+npm run dev          # Start development server
+npm run lint         # Run ESLint
+npm run build:web    # Build for web
+npx expo start --clear  # Clear cache and start
+```
+
+### Backend (geofencing_module/):
+```bash
+# Start server
+python3 -m uvicorn app:app --reload
+
+# Run tests
+python3 -m unittest geofencing_module.tests.test_geofence -v
+
+# Check database
+sqlite3 tourists.db "SELECT * FROM tourists;"
+
+# Run migration
+python3 migrate_add_last_updated.py
+```
+
+### Metro Bundler Shortcuts (when running):
+- `r` - Reload app
+- `m` - Toggle menu
+- `d` - Open developer menu
+- `i` - Open iOS simulator
+- `a` - Open Android emulator
+- `w` - Open web browser
+- `j` - Open debugger
+- `c` - Clear bundler cache
+- `s` - Switch to connection string
+- `q` - Quit
+
+================================================================================
+                             PROJECT STRUCTURE
+================================================================================
+
+```
+SIH_2K25/
+├── ui/                          # React Native Frontend (Expo SDK 53)
+│   ├── app/                     # App screens and components
+│   │   ├── (tabs)/             # Tab navigation screens
+│   │   │   ├── index.tsx       # Home screen
+│   │   │   ├── maps.tsx        # Maps with tourists & zones
+│   │   │   ├── emergency.tsx   # Emergency SOS screen
+│   │   │   ├── profile.tsx     # Profile & Tourist ID
+│   │   │   └── settings.tsx    # Settings & preferences
+│   │   ├── components/         # Reusable UI components
+│   │   ├── contexts/           # React contexts (Auth, Theme)
+│   │   ├── hooks/              # Custom hooks (useTranslation)
+│   │   ├── services/           # API services
+│   │   └── data/               # Sample data
+│   ├── package.json
+│   └── app.json
+│
+├── geofencing_module/          # Python FastAPI Backend
+│   ├── app.py                  # Main FastAPI application
+│   ├── tourists.db             # SQLite database
+│   ├── seed.py                 # Database seeding script
+│   ├── migrate_add_last_updated.py  # Database migration
+│   └── requirements.txt
+│
+├── index.html                  # Standalone web dashboard
+└── run.txt                     # This file!
+```
+
+================================================================================
+                           ADDITIONAL RESOURCES
+================================================================================
+
+📚 Documentation Files:
+- BACKEND_FIX_TOURISTS.md     - Backend fixes documentation
+- TEST_CREDENTIALS.md         - Complete list of test users
+- INTEGRATION_GUIDE.md        - API integration guide
+- NEW_FEATURES_GUIDE.md       - Feature documentation
+- PR_SUMMARY.md               - Pull request summary
+
+🔗 Useful Links:
+- Expo Documentation: https://docs.expo.dev/
+- React Native Docs: https://reactnative.dev/
+- FastAPI Docs: https://fastapi.tiangolo.com/
+
+🆘 Need Help?
+- Check the GitHub Issues page
+- Review the documentation files listed above
+- Check the troubleshooting section in this file
+
+================================================================================
+                              VERSION INFO
+================================================================================
+
+Expo SDK: 53
+React Native: 0.79.5
+React: 19.0.0
+Node: v20+ recommended
+Python: 3.12+ recommended
+
+Last Updated: 2025-01-07
+
+================================================================================
+                                 ENJOY! 🚀
+================================================================================
