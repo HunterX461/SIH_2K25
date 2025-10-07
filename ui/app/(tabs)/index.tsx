@@ -45,11 +45,21 @@ export default function HomeScreen() {
       // Update location on backend if user is authenticated
       if (user?.token) {
         try {
-          await apiService.updateLocation(
+          const response = await apiService.updateLocation(
             user.token,
             currentLocation.coords.latitude,
             currentLocation.coords.longitude
           );
+          
+          // Check if user entered a danger zone
+          if (response.in_danger_zone && response.danger_zone_info) {
+            const zoneInfo = response.danger_zone_info;
+            Alert.alert(
+              '⚠️ Danger Zone Alert',
+              `You have entered ${zoneInfo.zone_name} - a ${zoneInfo.risk_level} risk area. Please stay alert and consider leaving the area.`,
+              [{ text: 'OK', style: 'default' }]
+            );
+          }
         } catch (error) {
           console.error('Error updating location on backend:', error);
         }

@@ -71,6 +71,16 @@ class PoliceStation(Base):
     latitude = Column(Float)
     longitude = Column(Float)
 
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, index=True)
+    token = Column(String, unique=True, index=True)
+    expires_at = Column(DateTime)
+    used = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 # Create tables
 Base.metadata.create_all(bind=engine)
 
@@ -133,6 +143,13 @@ class ZoneCreate(BaseModel):
 class SOSStatusUpdate(BaseModel):
     alert_id: int
     status: str  # active, resolved, cancelled
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+class PasswordResetConfirm(BaseModel):
+    token: str
+    new_password: str
 
 # Authentication functions
 def verify_password(plain_password, hashed_password):
@@ -218,7 +235,20 @@ def register_user(user: UserRegister, db: Session = Depends(get_db)):
 @app.post("/login", response_model=Token)
 def login_user(user: UserLogin, db: Session = Depends(get_db)):
     db_user = db.query(Tourist).filter(Tourist.email == user.email).first()
-    if not db_user or not verify_password(user.password, db_user.password_hash):
+    if not db_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password"
+        )
+    
+    # For guest users, password_hash might be None
+    if db_user.is_guest:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Guest users cannot login. Please register as guest again."
+        )
+    
+    if not db_user.password_hash or not verify_password(user.password, db_user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password"
@@ -237,6 +267,64 @@ def login_user(user: UserLogin, db: Session = Depends(get_db)):
         "email": db_user.email
     }
 
+@app.post("/password-reset/request")
+def request_password_reset(request: PasswordResetRequest, db: Session = Depends(get_db)):
+    """Request a password reset token"""
+    user = db.query(Tourist).filter(Tourist.email == request.email).first()
+    if not user:
+        # Don't reveal if email exists or not for security
+        return {"status": "success", "message": "If the email exists, a reset token will be sent"}
+    
+    if user.is_guest:
+        raise HTTPException(status_code=400, detail="Guest users cannot reset passwords")
+    
+    # Generate reset token
+    import secrets
+    reset_token = secrets.token_urlsafe(32)
+    expires_at = datetime.utcnow() + timedelta(hours=1)
+    
+    # Store token in database
+    db_token = PasswordResetToken(
+        email=request.email,
+        token=reset_token,
+        expires_at=expires_at
+    )
+    db.add(db_token)
+    db.commit()
+    
+    # In production, send email with reset link
+    # For now, return the token (remove this in production)
+    return {
+        "status": "success",
+        "message": "Password reset token generated",
+        "token": reset_token,  # Remove in production
+        "expires_at": expires_at.isoformat()
+    }
+
+@app.post("/password-reset/confirm")
+def confirm_password_reset(request: PasswordResetConfirm, db: Session = Depends(get_db)):
+    """Reset password using token"""
+    # Find valid token
+    token = db.query(PasswordResetToken).filter(
+        PasswordResetToken.token == request.token,
+        PasswordResetToken.used == False,
+        PasswordResetToken.expires_at > datetime.utcnow()
+    ).first()
+    
+    if not token:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+    
+    # Update user password
+    user = db.query(Tourist).filter(Tourist.email == token.email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    user.password_hash = get_password_hash(request.new_password)
+    token.used = True
+    db.commit()
+    
+    return {"status": "success", "message": "Password reset successfully"}
+
 @app.get("/me")
 def get_current_tourist(current_user: Tourist = Depends(get_current_user)):
     return {
@@ -247,7 +335,8 @@ def get_current_tourist(current_user: Tourist = Depends(get_current_user)):
         "latitude": current_user.latitude,
         "longitude": current_user.longitude,
         "is_guest": current_user.is_guest,
-        "wallet_address": current_user.wallet_address
+        "wallet_address": current_user.wallet_address,
+        "status": current_user.status
     }
 
 @app.post("/update_location")
@@ -274,14 +363,33 @@ def update_location(
     db.commit()
     
     # Check if user is in any danger zones
-    zones = db.query(Zone).all()
+    import json
+    zones = db.query(Zone).filter(Zone.zone_type == "risk").all()
     current_zone = None
     in_danger_zone = False
+    danger_zone_info = None
     
     for zone in zones:
-        # Simple point-in-polygon check would go here
-        # For now, checking zone risk level
-        pass
+        # Simple bounding box check for zone proximity
+        coords = json.loads(zone.coordinates) if zone.coordinates else []
+        if coords and len(coords) >= 2:
+            # Get min/max bounds
+            lats = [c[1] for c in coords]
+            lons = [c[0] for c in coords]
+            min_lat, max_lat = min(lats), max(lats)
+            min_lon, max_lon = min(lons), max(lons)
+            
+            # Check if point is within bounding box
+            if (min_lat <= location.latitude <= max_lat and 
+                min_lon <= location.longitude <= max_lon):
+                in_danger_zone = True
+                current_zone = zone.name
+                danger_zone_info = {
+                    "zone_name": zone.name,
+                    "risk_level": zone.risk_level,
+                    "zone_id": zone.zone_id
+                }
+                break
     
     return {
         "status": "success",
@@ -289,7 +397,9 @@ def update_location(
         "longitude": location.longitude,
         "tourist_id": current_user.id,
         "user_status": current_user.status,
-        "in_danger_zone": in_danger_zone
+        "in_danger_zone": in_danger_zone,
+        "current_zone": current_zone,
+        "danger_zone_info": danger_zone_info
     }
 
 @app.get("/tourists/locations")
@@ -409,8 +519,16 @@ def create_sos_alert(
     }
 
 @app.get("/zones")
-def get_zones(db: Session = Depends(get_db)):
-    zones = db.query(Zone).all()
+def get_zones(zone_type: Optional[str] = None, db: Session = Depends(get_db)):
+    """
+    Get all zones, optionally filtered by zone_type
+    zone_type can be: tourist, risk, city, must_visit
+    """
+    if zone_type:
+        zones = db.query(Zone).filter(Zone.zone_type == zone_type).all()
+    else:
+        zones = db.query(Zone).all()
+    
     colors = {"normal": "green", "medium": "yellow", "high": "red"}
     
     result = []
@@ -427,6 +545,32 @@ def get_zones(db: Session = Depends(get_db)):
         })
     
     return result
+
+@app.get("/zones/statistics")
+def get_zone_statistics(db: Session = Depends(get_db)):
+    """Get statistics about zones and incidents"""
+    zones = db.query(Zone).all()
+    total_zones = len(zones)
+    
+    # Count by type
+    zone_types = {}
+    risk_levels = {}
+    for zone in zones:
+        zone_types[zone.zone_type] = zone_types.get(zone.zone_type, 0) + 1
+        risk_levels[zone.risk_level] = risk_levels.get(zone.risk_level, 0) + 1
+    
+    # Count active alerts (incidents)
+    active_alerts = db.query(PanicAlert).filter(PanicAlert.status == "active").count()
+    total_alerts = db.query(PanicAlert).count()
+    
+    return {
+        "total_zones": total_zones,
+        "zone_types": zone_types,
+        "risk_levels": risk_levels,
+        "active_incidents": active_alerts,
+        "total_incidents": total_alerts,
+        "must_visit_places": zone_types.get("must_visit", 0)
+    }
 
 @app.post("/zones")
 def create_zone(
@@ -453,6 +597,63 @@ def create_zone(
     db.refresh(db_zone)
     
     return {"status": "created", "zone_id": db_zone.zone_id}
+
+@app.get("/must_visit_places")
+def get_must_visit_places(
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+    radius_km: float = 50.0,
+    db: Session = Depends(get_db)
+):
+    """
+    Get must-visit tourist attractions
+    If latitude/longitude provided, returns places within radius_km
+    Otherwise returns all must-visit places
+    """
+    import json
+    must_visit_zones = db.query(Zone).filter(Zone.zone_type == "must_visit").all()
+    
+    result = []
+    for zone in must_visit_zones:
+        coords = json.loads(zone.coordinates) if zone.coordinates else []
+        # Calculate center point for the zone
+        if coords and len(coords) > 0:
+            lat_sum = sum(coord[1] for coord in coords)
+            lon_sum = sum(coord[0] for coord in coords)
+            center_lat = lat_sum / len(coords)
+            center_lon = lon_sum / len(coords)
+        else:
+            center_lat = 0
+            center_lon = 0
+        
+        # If location provided, filter by distance
+        if latitude is not None and longitude is not None:
+            # Simple distance calculation (approximate)
+            distance = ((latitude - center_lat) ** 2 + (longitude - center_lon) ** 2) ** 0.5
+            # Convert to approximate km (1 degree ≈ 111 km)
+            distance_km = distance * 111
+            
+            if distance_km > radius_km:
+                continue
+        else:
+            distance_km = None
+            
+        result.append({
+            "id": zone.id,
+            "zone_id": zone.zone_id,
+            "name": zone.name,
+            "latitude": center_lat,
+            "longitude": center_lon,
+            "coordinates": coords,
+            "description": f"Popular tourist attraction - {zone.name}",
+            "distance_km": round(distance_km, 2) if distance_km is not None else None
+        })
+    
+    # Sort by distance if location provided
+    if latitude is not None and longitude is not None:
+        result.sort(key=lambda x: x['distance_km'] if x['distance_km'] is not None else float('inf'))
+    
+    return result
 
 @app.get("/police_stations")
 def get_police_stations(db: Session = Depends(get_db)):
