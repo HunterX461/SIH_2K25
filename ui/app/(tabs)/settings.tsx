@@ -48,12 +48,12 @@ export default function SettingsScreen() {
   };
 
   const getLanguageName = (lang: string) => {
-    const names = { en: 'English', es: 'Español', fr: 'Français' };
+    const names: { [key: string]: string } = { en: 'English', es: 'Español', fr: 'Français' };
     return names[lang] || lang;
   };
 
   const getFontSizeLabel = (size: string) => {
-    const labels = { small: 'Small', medium: 'Medium', large: 'Large' };
+    const labels: { [key: string]: string } = { small: 'Small', medium: 'Medium', large: 'Large' };
     return labels[size] || size;
   };
 

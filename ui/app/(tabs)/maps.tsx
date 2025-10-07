@@ -4,7 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as Location from 'expo-location';
 import { Crosshair } from 'lucide-react-native';
 import { useTranslation } from '../hooks/useTranslation';
-import { MapView, Marker, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useAuth } from '../contexts/AuthContext';
 import { apiService } from '../services/apiService';
 
