@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { Shield, MapPin, TriangleAlert as AlertTriangle, Users, TrendingUp } from 'lucide-react-native';
+import { MapPin, TriangleAlert as AlertTriangle, Users } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
 import { useTranslation } from '../hooks/useTranslation';
@@ -20,14 +19,6 @@ export default function HomeScreen() {
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [safetyScore, setSafetyScore] = useState(85);
   const [isTracking, setIsTracking] = useState(false);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    getCurrentLocation();
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
 
   const getCurrentLocation = async () => {
     try {
@@ -77,6 +68,15 @@ export default function HomeScreen() {
       console.error('Error getting location:', error);
     }
   };
+
+  useEffect(() => {
+    mountedRef.current = true;
+    getCurrentLocation();
+    return () => {
+      mountedRef.current = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const triggerEmergency = () => {
     if (Platform.OS !== 'web') {

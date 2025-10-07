@@ -21,7 +21,7 @@ function RootLayoutNav() {
       // Redirect to tabs if authenticated
       router.replace('/(tabs)');
     }
-  }, [isAuthenticated, isLoading, segments]);
+  }, [isAuthenticated, isLoading, segments, router]);
 
   return (
     <>

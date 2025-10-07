@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { Settings as SettingsIcon, Globe, Bell, Shield, Volume2, Type, CircleHelp as HelpCircle, LogOut } from 'lucide-react-native';
+import { Globe, Bell, Shield, CircleHelp as HelpCircle, LogOut } from 'lucide-react-native';
 import { useTranslation } from '../hooks/useTranslation';
 import { SettingsSection } from '../components/SettingsSection';
 

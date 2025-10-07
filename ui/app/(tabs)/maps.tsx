@@ -17,15 +17,6 @@ interface Tourist {
   emergency_contact?: string;
 }
 
-interface Zone {
-  zone_id: string;
-  name: string;
-  risk_level: string;
-  zone_type: string;
-  color: string;
-  coordinates: number[][];
-}
-
 interface MustVisitPlace {
   id: number;
   zone_id: string;
@@ -48,7 +39,6 @@ export default function MapsScreen() {
     latitudeDelta: 0.5,
     longitudeDelta: 0.5,
   });
-  const [zones, setZones] = useState<Zone[]>([]);
   const [allTourists, setAllTourists] = useState<Tourist[]>([]);
   const [safetyZones, setSafetyZones] = useState<any[]>([]);
   const [dangerZones, setDangerZones] = useState<any[]>([]);
@@ -102,7 +92,6 @@ export default function MapsScreen() {
       try {
         const data = await apiService.getZones(user?.token);
         if (isMounted) {
-          setZones(data);
           // Separate zones by risk level
           const safe = data.filter(z => z.risk_level === 'normal');
           const danger = data.filter(z => z.risk_level === 'high' || z.risk_level === 'medium');

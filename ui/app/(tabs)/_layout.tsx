@@ -1,7 +1,5 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useGlobalSearchParams } from 'expo-router';
 import { Shield, MapPin, User, TriangleAlert as AlertTriangle, Settings } from 'lucide-react-native';
-// --- 1. IMPORT THE HOOK TO READ THE TOURIST ID ---
-import { useGlobalSearchParams } from 'expo-router';
 
 export default function TabLayout() {
   // --- 2. GET THE TOURIST ID FROM THE GLOBAL NAVIGATION STATE ---
