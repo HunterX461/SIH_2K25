@@ -85,16 +85,48 @@ class PasswordResetToken(Base):
 # Create tables
 Base.metadata.create_all(bind=engine)
 
+# Initialize test user for development/testing
+def init_test_user():
+    """Initialize test user (test@gmail.com / test123) for development"""
+    db = SessionLocal()
+    try:
+        test_email = "test@gmail.com"
+        existing_user = db.query(Tourist).filter(Tourist.email == test_email).first()
+        if not existing_user:
+            test_user = Tourist(
+                name="Test User",
+                email=test_email,
+                password_hash=pwd_context.hash("test123"),
+                emergency_contact="+1 (555) 000-0000",
+                is_guest=False
+            )
+            db.add(test_user)
+            db.commit()
+            print(f"✅ Test user created: {test_email} / test123")
+        else:
+            print(f"✅ Test user already exists: {test_email}")
+    except Exception as e:
+        print(f"⚠️  Error initializing test user: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
 # FastAPI app
 app = FastAPI(title="Tourist Safety API")
 
-# CORS configuration
+# Initialize test user on startup
+@app.on_event("startup")
+def startup_event():
+    init_test_user()
+
+# CORS configuration - allows cross-origin requests from frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify exact origins
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=["*"],  # In production, specify exact origins like ["http://localhost:8081", "https://yourdomain.com"]
+    allow_credentials=True,  # Allow cookies and Authorization headers
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Explicitly allow these HTTP methods
+    allow_headers=["*"],  # Allow all headers including Authorization, Content-Type, etc.
+    expose_headers=["*"],  # Expose all response headers to the frontend
 )
 
 # Dependency to get DB session
