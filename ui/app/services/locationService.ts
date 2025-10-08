@@ -1,5 +1,39 @@
 import * as Location from 'expo-location';
 
+/**
+ * LocationService - Handles GPS tracking and location-based features
+ * 
+ * OFFLINE SUPPORT STRATEGY:
+ * -------------------------
+ * When a tourist enters a no-network zone, the app implements several fallback mechanisms:
+ * 
+ * 1. LOCAL CACHING:
+ *    - All safety zones, danger zones, and must-visit places are cached locally using AsyncStorage
+ *    - Last known location is stored and used for offline calculations
+ *    - Cache expires after 24 hours to ensure data freshness
+ * 
+ * 2. OFFLINE QUEUE:
+ *    - Location updates are queued when network is unavailable
+ *    - Queue is persisted in AsyncStorage to survive app restarts
+ *    - When connection is restored, queued updates are synced to backend in priority order
+ * 
+ * 3. OFFLINE SOS:
+ *    - SOS alerts are queued with highest priority
+ *    - SMS fallback: Opens device SMS app to send emergency message with coordinates
+ *    - Local notification alerts user that SOS will be sent when connection is restored
+ *    - Coordinates stored with timestamp for later backend sync
+ * 
+ * 4. GEOFENCING OFFLINE:
+ *    - Cached zone polygons used for point-in-polygon calculations
+ *    - Safety scoring continues using last known zone data
+ *    - Alerts triggered based on cached danger zones
+ * 
+ * 5. BACKGROUND SYNC:
+ *    - Uses expo-background-fetch to sync when connection becomes available
+ *    - Processes offline queue: SOS alerts first, then location updates, then profile changes
+ * 
+ * Implementation: See TECHNICAL_ARCHITECTURE.md for detailed code examples and setup instructions
+ */
 class LocationService {
   private locationSubscription: Location.LocationSubscription | null = null;
 
