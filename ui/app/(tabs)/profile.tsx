@@ -8,11 +8,13 @@ import { TouristIdCard } from '../components/TouristIdCard';
 import { router } from 'expo-router';
 import * as Location from 'expo-location';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { apiService } from '../services/apiService';
 
 export default function ProfileScreen() {
   const { t } = useTranslation();
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
+  const { theme, colors } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState({
     name: user?.name || 'Guest User',
@@ -82,9 +84,16 @@ export default function ProfileScreen() {
 
   }, [user]);
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     setIsEditing(false);
-    const msg = 'Profile changes saved locally. Sync with backend in Settings.';
+    
+    // Update user in context
+    await updateUser({
+      name: profile.name,
+      emergency_contact: profile.emergencyContact,
+    });
+    
+    const msg = 'Profile updated successfully!';
     if (Platform.OS === 'web') {
       alert(msg);
     } else {
@@ -144,24 +153,24 @@ export default function ProfileScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="dark" />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
       
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <User size={48} color="#6B7280" />
+            <View style={[styles.avatar, { backgroundColor: colors.border }]}>
+              <User size={48} color={colors.textSecondary} />
             </View>
           </View>
-          <Text style={styles.name}>{profile.name}</Text>
-          <Text style={styles.touristId}>Tourist ID: {profile.touristId}</Text>
+          <Text style={[styles.name, { color: colors.text }]}>{profile.name}</Text>
+          <Text style={[styles.touristId, { color: colors.textSecondary }]}>Tourist ID: {profile.touristId}</Text>
           <TouchableOpacity 
-            style={styles.editButton}
+            style={[styles.editButton, { backgroundColor: colors.primaryLight }]}
             onPress={() => isEditing ? handleSaveProfile() : setIsEditing(true)}
           >
-            <Edit size={16} color="#DC2626" />
-            <Text style={styles.editButtonText}>
+            <Edit size={16} color={colors.primary} />
+            <Text style={[styles.editButtonText, { color: colors.primary }]}>
               {isEditing ? t('save') : t('edit_profile')}
             </Text>
           </TouchableOpacity>
@@ -171,19 +180,19 @@ export default function ProfileScreen() {
 
         {/* Quick Actions */}
         <View style={styles.quickActionsContainer}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Quick Actions</Text>
           <View style={styles.quickActions}>
-            <TouchableOpacity style={styles.quickActionCard} onPress={navigateToEmergency}>
+            <TouchableOpacity style={[styles.quickActionCard, { backgroundColor: colors.card }]} onPress={navigateToEmergency}>
               <Shield size={24} color="#DC2626" />
-              <Text style={styles.quickActionText}>Emergency SOS</Text>
+              <Text style={[styles.quickActionText, { color: colors.text }]}>Emergency SOS</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.quickActionCard} onPress={handleEmergencyCall}>
+            <TouchableOpacity style={[styles.quickActionCard, { backgroundColor: colors.card }]} onPress={handleEmergencyCall}>
               <Phone size={24} color="#059669" />
-              <Text style={styles.quickActionText}>Call Contact</Text>
+              <Text style={[styles.quickActionText, { color: colors.text }]}>Call Contact</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.quickActionCard} onPress={navigateToSettings}>
+            <TouchableOpacity style={[styles.quickActionCard, { backgroundColor: colors.card }]} onPress={navigateToSettings}>
               <Bell size={24} color="#7C3AED" />
-              <Text style={styles.quickActionText}>Settings</Text>
+              <Text style={[styles.quickActionText, { color: colors.text }]}>Settings</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -194,15 +203,16 @@ export default function ProfileScreen() {
             icon={User}
           >
             <View style={styles.infoRow}>
-              <Text style={styles.label}>{t('full_name')}</Text>
+              <Text style={[styles.label, { color: colors.text }]}>{t('full_name')}</Text>
               {isEditing ? (
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]}
                   value={profile.name}
                   onChangeText={(text) => setProfile({...profile, name: text})}
+                  placeholderTextColor={colors.textSecondary}
                 />
               ) : (
-                <Text style={styles.value}>{profile.name}</Text>
+                <Text style={[styles.value, { color: colors.text }]}>{profile.name}</Text>
               )}
             </View>
           </ProfileSection>
@@ -212,15 +222,16 @@ export default function ProfileScreen() {
             icon={MapPin}
           >
             <View style={styles.infoRow}>
-              <Text style={styles.label}>{t('emergency_contact')}</Text>
+              <Text style={[styles.label, { color: colors.text }]}>{t('emergency_contact')}</Text>
               {isEditing ? (
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]}
                   value={profile.emergencyContact}
                   onChangeText={(text) => setProfile({...profile, emergencyContact: text})}
+                  placeholderTextColor={colors.textSecondary}
                 />
               ) : (
-                <Text style={styles.value}>{profile.emergencyContact}</Text>
+                <Text style={[styles.value, { color: colors.text }]}>{profile.emergencyContact}</Text>
               )}
             </View>
           </ProfileSection>

@@ -6,6 +6,7 @@ import { Crosshair } from 'lucide-react-native';
 import { useTranslation } from '../hooks/useTranslation';
 import MapView, { Marker, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { apiService } from '../services/apiService';
 
 interface Tourist {
@@ -31,6 +32,7 @@ interface MustVisitPlace {
 export default function MapsScreen() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { theme, colors } = useTheme();
   const mapRef = useRef<MapView>(null);
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [region, setRegion] = useState({
@@ -164,7 +166,7 @@ export default function MapsScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar style="dark" />
+      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
       <MapView
         ref={mapRef}
         style={styles.map}
@@ -172,6 +174,7 @@ export default function MapsScreen() {
         region={region}
         showsUserLocation={true}
         showsMyLocationButton={false}
+        customMapStyle={theme === 'dark' ? darkMapStyle : undefined}
       >
         {allTourists.map(tourist => {
           // Color based on status: red for emergency, orange for moving, blue for idle
@@ -206,22 +209,104 @@ export default function MapsScreen() {
         ))}
       </MapView>
       <View style={styles.controls}>
-        <TouchableOpacity style={styles.controlButton} onPress={centerOnUser}>
+        <TouchableOpacity style={[styles.controlButton, { backgroundColor: colors.surface }]} onPress={centerOnUser}>
           <Crosshair size={24} color="#DC2626" />
         </TouchableOpacity>
       </View>
-      <View style={styles.legend}>
-        <Text style={styles.legendTitle}>{t('map_legend')}</Text>
-        <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: 'red' }]} /><Text style={styles.legendText}>Emergency 🚨</Text></View>
-        <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: 'orange' }]} /><Text style={styles.legendText}>Moving</Text></View>
-        <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: 'blue' }]} /><Text style={styles.legendText}>Idle</Text></View>
-        <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: 'gold' }]} /><Text style={styles.legendText}>⭐ Must Visit</Text></View>
-        <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: '#22C55E' }]} /><Text style={styles.legendText}>{t('safe_zones')}</Text></View>
-        <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: '#EF4444' }]} /><Text style={styles.legendText}>{t('danger_zones')}</Text></View>
+      <View style={[styles.legend, { backgroundColor: colors.surface }]}>
+        <Text style={[styles.legendTitle, { color: colors.text }]}>{t('map_legend')}</Text>
+        <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: 'red' }]} /><Text style={[styles.legendText, { color: colors.textSecondary }]}>Emergency 🚨</Text></View>
+        <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: 'orange' }]} /><Text style={[styles.legendText, { color: colors.textSecondary }]}>Moving</Text></View>
+        <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: 'blue' }]} /><Text style={[styles.legendText, { color: colors.textSecondary }]}>Idle</Text></View>
+        <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: 'gold' }]} /><Text style={[styles.legendText, { color: colors.textSecondary }]}>⭐ Must Visit</Text></View>
+        <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: '#22C55E' }]} /><Text style={[styles.legendText, { color: colors.textSecondary }]}>{t('safe_zones')}</Text></View>
+        <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: '#EF4444' }]} /><Text style={[styles.legendText, { color: colors.textSecondary }]}>{t('danger_zones')}</Text></View>
       </View>
     </View>
   );
 }
+
+// Dark map style for Google Maps
+const darkMapStyle = [
+  { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+  {
+    featureType: "administrative.locality",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#d59563" }],
+  },
+  {
+    featureType: "poi",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#d59563" }],
+  },
+  {
+    featureType: "poi.park",
+    elementType: "geometry",
+    stylers: [{ color: "#263c3f" }],
+  },
+  {
+    featureType: "poi.park",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#6b9a76" }],
+  },
+  {
+    featureType: "road",
+    elementType: "geometry",
+    stylers: [{ color: "#38414e" }],
+  },
+  {
+    featureType: "road",
+    elementType: "geometry.stroke",
+    stylers: [{ color: "#212a37" }],
+  },
+  {
+    featureType: "road",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#9ca5b3" }],
+  },
+  {
+    featureType: "road.highway",
+    elementType: "geometry",
+    stylers: [{ color: "#746855" }],
+  },
+  {
+    featureType: "road.highway",
+    elementType: "geometry.stroke",
+    stylers: [{ color: "#1f2835" }],
+  },
+  {
+    featureType: "road.highway",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#f3d19c" }],
+  },
+  {
+    featureType: "transit",
+    elementType: "geometry",
+    stylers: [{ color: "#2f3948" }],
+  },
+  {
+    featureType: "transit.station",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#d59563" }],
+  },
+  {
+    featureType: "water",
+    elementType: "geometry",
+    stylers: [{ color: "#17263c" }],
+  },
+  {
+    featureType: "water",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#515c6d" }],
+  },
+  {
+    featureType: "water",
+    elementType: "labels.text.stroke",
+    stylers: [{ color: "#17263c" }],
+  },
+];
 
 const styles = StyleSheet.create({
     container: { flex: 1 },

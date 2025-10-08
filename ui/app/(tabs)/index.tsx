@@ -1,24 +1,27 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { MapPin, TriangleAlert as AlertTriangle, Users } from 'lucide-react-native';
 import * as Location from 'expo-location';
-import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
 import { useTranslation } from '../hooks/useTranslation';
 import { SafetyScoreCard } from '../components/SafetyScoreCard';
 import { QuickActionCard } from '../components/QuickActionCard';
 import { RecentAlertsCard } from '../components/RecentAlertsCard';
+import { MustVisitPlacesCard } from '../components/MustVisitPlacesCard';
 import { locationService } from '../services/locationService';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { apiService } from '../services/apiService';
 
 export default function HomeScreen() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { theme, colors } = useTheme();
+  const router = useRouter();
   const mountedRef = useRef(true);
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [safetyScore, setSafetyScore] = useState(85);
-  const [isTracking, setIsTracking] = useState(false);
 
   const getCurrentLocation = async () => {
     try {
@@ -78,58 +81,37 @@ export default function HomeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const triggerEmergency = () => {
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    }
-    Alert.alert(
-      'Emergency Alert',
-      'Are you in immediate danger?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Send SOS', 
-          style: 'destructive',
-          onPress: () => {
-            // Handle emergency alert
-            Alert.alert('SOS Sent', 'Emergency contacts have been notified with your location');
-          }
-        }
-      ]
-    );
-  };
-
   const quickActions = [
     {
       icon: AlertTriangle,
       title: t('emergency_sos'),
       subtitle: t('instant_help'),
       color: '#DC2626',
-      onPress: triggerEmergency
+      onPress: () => router.push('/(tabs)/emergency')
     },
     {
       icon: MapPin,
       title: t('track_location'),
       subtitle: t('real_time_monitoring'),
       color: '#059669',
-      onPress: () => setIsTracking(!isTracking)
+      onPress: () => router.push('/(tabs)/maps')
     },
     {
       icon: Users,
       title: t('emergency_contacts'),
       subtitle: t('manage_contacts'),
       color: '#7C3AED',
-      onPress: () => {}
+      onPress: () => router.push('/(tabs)/profile')
     }
   ];
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="dark" />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={styles.title}>{t('tourist_safety')}</Text>
-          <Text style={styles.subtitle}>{t('stay_safe_travel_smart')}</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t('tourist_safety')}</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t('stay_safe_travel_smart')}</Text>
         </View>
 
         <SafetyScoreCard 
@@ -139,13 +121,15 @@ export default function HomeScreen() {
         />
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('quick_actions')}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('quick_actions')}</Text>
           <View style={styles.quickActions}>
             {quickActions.map((action, index) => (
               <QuickActionCard key={index} {...action} />
             ))}
           </View>
         </View>
+
+        <MustVisitPlacesCard />
 
         <RecentAlertsCard />
       </ScrollView>

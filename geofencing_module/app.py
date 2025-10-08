@@ -346,6 +346,62 @@ def update_location(
     current_user: Tourist = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    """
+    Update Tourist Location and Perform Real-time Geofencing
+    
+    GEOFENCING IMPLEMENTATION:
+    --------------------------
+    This endpoint implements real-time geofencing for tourist safety:
+    
+    1. LOCATION TRACKING:
+       - Tourist's GPS coordinates sent every 30 seconds or 50 meters
+       - Last updated timestamp tracks active tourists (5-minute threshold)
+       - Movement detection: Compares current vs previous coordinates
+    
+    2. ZONE DETECTION:
+       - Point-in-polygon algorithm checks if tourist is in any zone
+       - Uses Shapely library for accurate geometric calculations
+       - Prioritizes danger zones > safe zones > must-visit places
+    
+    3. RISK ASSESSMENT:
+       - Danger zones (high/medium risk) trigger immediate alerts
+       - Police stations notified when tourist enters high-risk area
+       - Tourist status updated: idle → moving → in_danger_zone
+    
+    4. FOR POLICE:
+       - Real-time dashboard shows all tourists on map
+       - Color-coded markers: red=emergency, orange=moving, blue=idle
+       - View tourist's location, emergency contact, and status
+       - Receive alerts when tourists enter danger zones
+    
+    5. FOR TOURISTS:
+       - Automatic notifications when entering danger zones
+       - Visual map with safe/danger zone overlays
+       - Must-visit places suggested based on location
+       - Safety score calculated based on current zone
+    
+    RISK ZONE UPDATES:
+    ------------------
+    Risk zones are updated through multiple mechanisms:
+    
+    1. MANUAL UPDATES (Police/Admin):
+       - PUT /zones/{zone_id} endpoint for zone modifications
+       - Can update risk_level, coordinates, name
+       - Changes broadcast to all tourists in the zone
+    
+    2. AUTOMATED RISK ASSESSMENT:
+       - Analyzes incident history (last 30 days)
+       - Incident count and severity calculate risk level
+       - Scheduled job runs daily to update zone risk levels
+    
+    3. DATA SOURCES:
+       - Police incident reports
+       - Tourist feedback and SOS alerts
+       - Crime statistics APIs
+       - Government advisory systems
+    
+    Implementation details: See TECHNICAL_ARCHITECTURE.md
+    """
     # Calculate if user is moving (if previous location exists)
     is_moving = False
     if current_user.latitude and current_user.longitude:

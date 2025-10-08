@@ -1,6 +1,52 @@
 # SIH_2K25 - Smart Tourist Safety Monitoring & Incident Response System
 
-## ✨ Latest Updates
+## 🎉 Critical Fixes & Enhancements (December 2024)
+
+### Recently Implemented
+
+✅ **Quick Actions Navigation Fixed**
+- Dashboard quick actions now properly navigate to correct tabs
+- Emergency SOS → Emergency tab
+- Track Location → Maps tab
+- Emergency Contacts → Profile tab
+
+✅ **Profile Editing Functionality**
+- Users can now edit their name and emergency contact
+- Changes are persisted in the app's authentication context
+- Real-time updates reflected across the app
+
+✅ **Global Dark Mode**
+- Dark mode now applies to all screens (Home, Profile, Maps, Emergency, Settings)
+- Smooth color transitions
+- Dark map style for Maps screen
+- Theme persists across app sessions
+
+✅ **Must-Visit Places on Dashboard**
+- New card component showing top 5 must-visit places
+- Distance calculation from current location
+- Horizontal scrollable interface
+- Integrates with backend API
+
+✅ **Dynamic User Registration**
+- Removed hardcoded test user bypass
+- Any email can now be used for registration
+- Proper backend validation
+
+✅ **SOS Cancel Functionality**
+- Users can cancel active SOS alerts
+- Backend properly updates alert status to "cancelled"
+- Tourist status reset to "idle" after cancellation
+
+✅ **Technical Documentation**
+- Added `TECHNICAL_ARCHITECTURE.md` with detailed implementation guides
+- Offline support strategies (caching, queueing, SMS fallback)
+- Geofencing implementation details
+- Risk zone management documentation
+- Code examples for developers
+
+---
+
+## ✨ Previous Updates
 
 ### New Features Added (Latest Implementation)
 

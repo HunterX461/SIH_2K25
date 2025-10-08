@@ -8,11 +8,13 @@ import { useTranslation } from '../hooks/useTranslation';
 import { EmergencyContactCard } from '../components/EmergencyContactCard';
 import { emergencyContacts } from '../data/sampleData';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { apiService } from '../services/apiService';
 
 export default function EmergencyScreen() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { theme } = useTheme();
   const mountedRef = useRef(true);
   const [isEmergencyActive, setIsEmergencyActive] = useState(false);
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
@@ -214,7 +216,7 @@ export default function EmergencyScreen() {
   // The rest of your UI and styles are unchanged
   return (
     <View style={styles.container}>
-      <StatusBar style="light" backgroundColor="#DC2626" />
+      <StatusBar style={theme === 'dark' ? 'light' : 'light'} backgroundColor="#DC2626" />
       <View style={styles.header}>
         <Text style={styles.title}>{t('emergency_assistance')}</Text>
         <Text style={styles.subtitle}>{t('immediate_help_available')}</Text>
