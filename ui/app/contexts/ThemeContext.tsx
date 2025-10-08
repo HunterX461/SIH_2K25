@@ -123,6 +123,3 @@ export function useTheme() {
   }
   return context;
 }
-
-// Default export for convenience
-export default { ThemeProvider, useTheme };
