@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { MapPin, Star } from 'lucide-react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { apiService } from '../services/apiService';
@@ -20,11 +20,7 @@ export function MustVisitPlacesCard() {
   const [places, setPlaces] = useState<MustVisitPlace[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchMustVisitPlaces();
-  }, []);
-
-  const fetchMustVisitPlaces = async () => {
+  const fetchMustVisitPlaces = useCallback(async () => {
     try {
       setLoading(true);
       // Try to get user's location
@@ -46,7 +42,11 @@ export function MustVisitPlacesCard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.token]);
+
+  useEffect(() => {
+    fetchMustVisitPlaces();
+  }, [fetchMustVisitPlaces]);
 
   if (loading) {
     return (

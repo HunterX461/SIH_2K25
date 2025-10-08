@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { MapPin, TriangleAlert as AlertTriangle, Users } from 'lucide-react-native';
 import * as Location from 'expo-location';
-import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { useTranslation } from '../hooks/useTranslation';
 import { SafetyScoreCard } from '../components/SafetyScoreCard';
@@ -23,7 +22,6 @@ export default function HomeScreen() {
   const mountedRef = useRef(true);
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [safetyScore, setSafetyScore] = useState(85);
-  const [isTracking, setIsTracking] = useState(false);
 
   const getCurrentLocation = async () => {
     try {
@@ -82,27 +80,6 @@ export default function HomeScreen() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const triggerEmergency = () => {
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    }
-    Alert.alert(
-      'Emergency Alert',
-      'Are you in immediate danger?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Send SOS', 
-          style: 'destructive',
-          onPress: () => {
-            // Handle emergency alert
-            Alert.alert('SOS Sent', 'Emergency contacts have been notified with your location');
-          }
-        }
-      ]
-    );
-  };
 
   const quickActions = [
     {
