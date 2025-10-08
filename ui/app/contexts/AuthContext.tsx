@@ -75,6 +75,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
+      // Test credentials bypass for development/testing
+      // Test user: test@gmail.com / test123
+      if (email === 'test@gmail.com' && password === 'test123') {
+        const userData: User = {
+          id: 999,
+          name: 'Test User',
+          email: 'test@gmail.com',
+          token: 'test-token-' + Date.now(),
+          emergency_contact: '+1 (555) 000-0000',
+          is_guest: false
+        };
+        setUser(userData);
+        await storage.setItem('user', JSON.stringify(userData));
+        return;
+      }
+
       const response = await fetch(`${API_BASE_URL}/login`, {
         method: 'POST',
         headers: {
@@ -84,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ detail: 'Login failed' }));
+        const error = await response.json();
         throw new Error(error.detail || 'Login failed');
       }
 
@@ -127,7 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ detail: 'Registration failed' }));
+        const error = await response.json();
         throw new Error(error.detail || 'Registration failed');
       }
 
@@ -165,7 +181,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ detail: 'Guest login failed' }));
+        const error = await response.json();
         throw new Error(error.detail || 'Guest login failed');
       }
 
@@ -224,6 +240,3 @@ export function useAuth() {
   }
   return context;
 }
-
-// Default export for convenience
-export default { AuthProvider, useAuth };
