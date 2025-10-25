@@ -82,6 +82,19 @@ class PasswordResetToken(Base):
     used = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+class Place(Base):
+    __tablename__ = "places"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    description = Column(String)
+    latitude = Column(Float)
+    longitude = Column(Float)
+    category = Column(String)  # monument, temple, park, museum, etc.
+    image_url = Column(String, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 # Create tables
 Base.metadata.create_all(bind=engine)
 
@@ -151,6 +164,37 @@ class PasswordResetRequest(BaseModel):
 class PasswordResetConfirm(BaseModel):
     token: str
     new_password: str
+
+class PlaceCreate(BaseModel):
+    name: str
+    description: str
+    latitude: float
+    longitude: float
+    category: str
+    image_url: Optional[str] = None
+
+class PlaceUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    category: Optional[str] = None
+    image_url: Optional[str] = None
+    is_active: Optional[bool] = None
+
+class PlaceResponse(BaseModel):
+    id: int
+    name: str
+    description: str
+    latitude: float
+    longitude: float
+    category: str
+    image_url: Optional[str] = None
+    is_active: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
 
 # Authentication functions
 def verify_password(plain_password, hashed_password):
@@ -803,6 +847,95 @@ def update_alert_status(
         "alert_id": alert.id,
         "new_status": alert.status,
         "resolved_at": alert.resolved_at.isoformat() if alert.resolved_at else None
+    }
+
+@app.get("/places", response_model=List[PlaceResponse])
+def get_places(
+    category: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Get all active must-visit places
+    Optional filter by category (monument, temple, park, museum, etc.)
+    """
+    query = db.query(Place).filter(Place.is_active == True)
+    
+    if category:
+        query = query.filter(Place.category == category)
+    
+    places = query.all()
+    return places
+
+@app.post("/places", response_model=PlaceResponse)
+def create_place(
+    place: PlaceCreate,
+    db: Session = Depends(get_db)
+):
+    """
+    Create a new must-visit place
+    Admin only endpoint (for now allows without auth, can be secured later)
+    """
+    db_place = Place(
+        name=place.name,
+        description=place.description,
+        latitude=place.latitude,
+        longitude=place.longitude,
+        category=place.category,
+        image_url=place.image_url,
+        is_active=True
+    )
+    db.add(db_place)
+    db.commit()
+    db.refresh(db_place)
+    
+    return db_place
+
+@app.patch("/places/{place_id}", response_model=PlaceResponse)
+def update_place(
+    place_id: int,
+    place_update: PlaceUpdate,
+    db: Session = Depends(get_db)
+):
+    """
+    Update an existing place
+    Admin only endpoint (for now allows without auth, can be secured later)
+    """
+    db_place = db.query(Place).filter(Place.id == place_id).first()
+    
+    if not db_place:
+        raise HTTPException(status_code=404, detail="Place not found")
+    
+    # Update only provided fields
+    update_data = place_update.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_place, field, value)
+    
+    db.commit()
+    db.refresh(db_place)
+    
+    return db_place
+
+@app.delete("/places/{place_id}")
+def delete_place(
+    place_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Soft-delete a place by setting is_active to False
+    Admin only endpoint (for now allows without auth, can be secured later)
+    """
+    db_place = db.query(Place).filter(Place.id == place_id).first()
+    
+    if not db_place:
+        raise HTTPException(status_code=404, detail="Place not found")
+    
+    db_place.is_active = False
+    db.commit()
+    
+    return {
+        "status": "success",
+        "message": f"Place '{db_place.name}' has been deactivated",
+        "place_id": place_id
     }
 
 if __name__ == "__main__":
