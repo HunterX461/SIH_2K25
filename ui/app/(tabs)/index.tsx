@@ -8,7 +8,7 @@ import { useTranslation } from '../hooks/useTranslation';
 import { SafetyScoreCard } from '../components/SafetyScoreCard';
 import { QuickActionCard } from '../components/QuickActionCard';
 import { RecentAlertsCard } from '../components/RecentAlertsCard';
-import { MustVisitPlacesCard } from '../components/MustVisitPlacesCard';
+import { MustVisitPlaces } from '../components/MustVisitPlaces';
 import { locationService } from '../services/locationService';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -129,7 +129,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <MustVisitPlacesCard />
+        <MustVisitPlaces />
 
         <RecentAlertsCard />
       </ScrollView>
