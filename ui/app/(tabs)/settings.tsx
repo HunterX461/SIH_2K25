@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { Globe, Bell, Shield, CircleHelp as HelpCircle, LogOut, Moon, Sun } from 'lucide-react-native';
+import { Globe, Bell, Shield, CircleHelp as HelpCircle, LogOut, Moon, Sun, MapPin } from 'lucide-react-native';
 import { useTranslation } from '../hooks/useTranslation';
 import { SettingsSection } from '../components/SettingsSection';
+import { PlacesAdminModal } from '../components/PlacesAdminModal';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { router } from 'expo-router';
@@ -12,6 +13,7 @@ export default function SettingsScreen() {
   const { t, changeLanguage, currentLanguage } = useTranslation();
   const { logout } = useAuth();
   const { theme, toggleTheme, colors } = useTheme();
+  const [showPlacesAdmin, setShowPlacesAdmin] = useState(false);
   const [settings, setSettings] = useState({
     notifications: true,
     locationTracking: true,
@@ -196,6 +198,16 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </SettingsSection>
 
+          {/* Admin Section */}
+          <SettingsSection title="Admin Tools" icon={MapPin}>
+            <TouchableOpacity 
+              style={styles.linkItem}
+              onPress={() => setShowPlacesAdmin(true)}
+            >
+              <Text style={styles.linkText}>Manage Must-Visit Places</Text>
+            </TouchableOpacity>
+          </SettingsSection>
+
           {/* Account */}
           <View style={styles.accountSection}>
             <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -205,6 +217,11 @@ export default function SettingsScreen() {
           </View>
         </View>
       </ScrollView>
+      
+      <PlacesAdminModal 
+        visible={showPlacesAdmin}
+        onClose={() => setShowPlacesAdmin(false)}
+      />
     </View>
   );
 }

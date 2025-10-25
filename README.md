@@ -4,6 +4,14 @@
 
 ### Recently Implemented
 
+✅ **Must-Visit Places Management (Latest)**
+- Complete CRUD API for tourist destinations with 15+ pre-seeded places
+- Enhanced UI component with image carousel, category badges, and detail modal
+- Admin panel in Settings for creating/editing/deleting places
+- Map integration with gold markers and "Show on Map" navigation
+- Categories: monuments, temples, heritage sites, parks, museums
+- See [docs/docs_must_visit.md](docs/docs_must_visit.md) for full documentation
+
 ✅ **Quick Actions Navigation Fixed**
 - Dashboard quick actions now properly navigate to correct tabs
 - Emergency SOS → Emergency tab
@@ -21,12 +29,6 @@
 - Dark map style for Maps screen
 - Theme persists across app sessions
 
-✅ **Must-Visit Places on Dashboard**
-- New card component showing top 5 must-visit places
-- Distance calculation from current location
-- Horizontal scrollable interface
-- Integrates with backend API
-
 ✅ **Dynamic User Registration**
 - Removed hardcoded test user bypass
 - Any email can now be used for registration
@@ -39,6 +41,7 @@
 
 ✅ **Technical Documentation**
 - Added `TECHNICAL_ARCHITECTURE.md` with detailed implementation guides
+- Added `docs/docs_must_visit.md` for must-visit places feature
 - Offline support strategies (caching, queueing, SMS fallback)
 - Geofencing implementation details
 - Risk zone management documentation
@@ -71,17 +74,24 @@
 - Active incident tracking
 
 **Documentation:**
+- [docs/docs_must_visit.md](docs/docs_must_visit.md) - Must-Visit Places feature guide
 - [NEW_FEATURES_GUIDE.md](NEW_FEATURES_GUIDE.md) - Complete feature documentation
 - [IMPLEMENTATION_COMPLETE.md](IMPLEMENTATION_COMPLETE.md) - Implementation summary
 - [TEST_USER_CREDENTIALS.md](TEST_USER_CREDENTIALS.md) - 5 test users for testing
 - Run `./test_new_features.sh` for automated testing
 
-**Quick Test Login:**
+**Quick Test Commands:**
 ```bash
-# Use pre-created test users (no registration needed)
+# Login with test user
 curl -X POST http://localhost:8000/login \
   -H "Content-Type: application/json" \
   -d '{"email":"testuser1@example.com","password":"Test@123"}'
+
+# List all must-visit places
+curl http://localhost:8000/places
+
+# Seed places database
+cd geofencing_module && python seed_places.py
 ```
 
 ---
