@@ -10,6 +10,10 @@ import { useTheme } from '../contexts/ThemeContext';
 import { apiService } from '../services/apiService';
 import { useLocalSearchParams } from 'expo-router';
 
+// Map animation constants
+const MAP_FOCUS_DELAY_MS = 500; // Delay before animating to focused location
+const MAP_ANIMATION_DURATION_MS = 1000; // Duration of map animation in milliseconds
+
 interface Tourist {
   id: number;
   name: string;
@@ -168,8 +172,8 @@ export default function MapsScreen() {
           longitude: lon,
           latitudeDelta: 0.05,
           longitudeDelta: 0.05,
-        }, 1000);
-      }, 500);
+        }, MAP_ANIMATION_DURATION_MS);
+      }, MAP_FOCUS_DELAY_MS);
     }
   }, [params.focusLat, params.focusLon]);
   

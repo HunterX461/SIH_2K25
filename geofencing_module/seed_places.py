@@ -1,7 +1,12 @@
 """
 Seed script to populate the database with must-visit places
 Run this script to add initial popular tourist destinations
+
+Usage:
+  python seed_places.py           # Add places without clearing existing data
+  python seed_places.py --clear   # Clear existing places before adding new ones
 """
+import sys
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app import Base, Place
@@ -11,7 +16,7 @@ SQLALCHEMY_DATABASE_URL = "sqlite:///./tourists.db"
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-def seed_places():
+def seed_places(clear_existing=False):
     """Seed must-visit places for tourists"""
     # Create tables if they don't exist
     Base.metadata.create_all(bind=engine)
@@ -19,10 +24,13 @@ def seed_places():
     db = SessionLocal()
     
     try:
-        # Clear existing places (optional - comment out if you want to keep existing data)
-        print("Clearing existing places...")
-        db.query(Place).delete()
-        db.commit()
+        # Clear existing places only if --clear flag is provided
+        if clear_existing:
+            print("Clearing existing places...")
+            db.query(Place).delete()
+            db.commit()
+        else:
+            print("Keeping existing places (use --clear flag to remove them)")
         
         # Seed Must-Visit Places
         print("\nSeeding must-visit places...")
@@ -185,9 +193,16 @@ def seed_places():
 if __name__ == "__main__":
     print("Starting places seed...")
     print("="*60)
-    seed_places()
+    
+    # Check for --clear flag
+    clear_existing = '--clear' in sys.argv
+    if clear_existing:
+        print("⚠️  --clear flag detected: Will remove all existing places before seeding")
+    
+    seed_places(clear_existing)
     print("="*60)
     print("\nYou can now access these places via:")
     print("  GET  http://localhost:8000/places")
     print("  GET  http://localhost:8000/places?category=monument")
     print("  POST http://localhost:8000/places (to add new places)")
+    print("\nTo clear existing places on next run, use: python seed_places.py --clear")

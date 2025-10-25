@@ -71,8 +71,7 @@ export function PlacesAdminModal({ visible, onClose }: { visible: boolean; onClo
     if (visible) {
       fetchPlaces();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible]);
+  }, [visible, user?.token, fetchPlaces]);
 
   const handleCreate = async () => {
     if (!formData.name || !formData.description || !formData.latitude || !formData.longitude) {
@@ -119,8 +118,8 @@ export function PlacesAdminModal({ visible, onClose }: { visible: boolean; onClo
     const lat = parseFloat(formData.latitude);
     const lon = parseFloat(formData.longitude);
 
-    if (isNaN(lat) || isNaN(lon)) {
-      Alert.alert('Validation Error', 'Please enter valid coordinates');
+    if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+      Alert.alert('Validation Error', 'Please enter valid latitude (-90 to 90) and longitude (-180 to 180)');
       return;
     }
 
