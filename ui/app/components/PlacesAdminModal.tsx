@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -54,7 +54,7 @@ export function PlacesAdminModal({ visible, onClose }: { visible: boolean; onClo
     image_url: '',
   });
 
-  const fetchPlaces = async () => {
+  const fetchPlaces = useCallback(async () => {
     try {
       setLoading(true);
       const data = await apiService.getPlaces(undefined, user?.token);
@@ -65,13 +65,13 @@ export function PlacesAdminModal({ visible, onClose }: { visible: boolean; onClo
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.token]);
 
   useEffect(() => {
     if (visible) {
       fetchPlaces();
     }
-  }, [visible, user?.token, fetchPlaces]);
+  }, [visible, fetchPlaces]);
 
   const handleCreate = async () => {
     if (!formData.name || !formData.description || !formData.latitude || !formData.longitude) {
