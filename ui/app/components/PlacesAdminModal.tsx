@@ -71,6 +71,7 @@ export function PlacesAdminModal({ visible, onClose }: { visible: boolean; onClo
     if (visible) {
       fetchPlaces();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
   const handleCreate = async () => {

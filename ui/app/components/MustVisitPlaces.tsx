@@ -7,8 +7,7 @@ import {
   ActivityIndicator, 
   TouchableOpacity, 
   Modal,
-  Image,
-  Alert 
+  Image 
 } from 'react-native';
 import { MapPin, Star, X, ExternalLink } from 'lucide-react-native';
 import { useAuth } from '../contexts/AuthContext';
