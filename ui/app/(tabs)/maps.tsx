@@ -8,6 +8,11 @@ import MapView, { Marker, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { apiService } from '../services/apiService';
+import { useLocalSearchParams } from 'expo-router';
+
+// Map animation constants
+const MAP_FOCUS_DELAY_MS = 500; // Delay before animating to focused location
+const MAP_ANIMATION_DURATION_MS = 1000; // Duration of map animation in milliseconds
 
 interface Tourist {
   id: number;
@@ -18,15 +23,16 @@ interface Tourist {
   emergency_contact?: string;
 }
 
-interface MustVisitPlace {
+interface Place {
   id: number;
-  zone_id: string;
   name: string;
+  description: string;
   latitude: number;
   longitude: number;
-  coordinates: number[][];
-  description: string;
-  distance_km?: number;
+  category: string;
+  image_url?: string;
+  is_active: boolean;
+  created_at: string;
 }
 
 export default function MapsScreen() {
@@ -34,6 +40,7 @@ export default function MapsScreen() {
   const { user } = useAuth();
   const { theme, colors } = useTheme();
   const mapRef = useRef<MapView>(null);
+  const params = useLocalSearchParams();
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [region, setRegion] = useState({
     latitude: 19.0760,
@@ -44,7 +51,7 @@ export default function MapsScreen() {
   const [allTourists, setAllTourists] = useState<Tourist[]>([]);
   const [safetyZones, setSafetyZones] = useState<any[]>([]);
   const [dangerZones, setDangerZones] = useState<any[]>([]);
-  const [mustVisitPlaces, setMustVisitPlaces] = useState<MustVisitPlace[]>([]);
+  const [mustVisitPlaces, setMustVisitPlaces] = useState<Place[]>([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -126,9 +133,9 @@ export default function MapsScreen() {
       }
     };
 
-    const fetchMustVisitPlaces = async (lat?: number, lon?: number) => {
+    const fetchMustVisitPlaces = async () => {
       try {
-        const data = await apiService.getMustVisitPlaces(lat, lon, 100, user?.token);
+        const data = await apiService.getPlaces(undefined, user?.token);
         if (isMounted) {
           setMustVisitPlaces(data);
         }
@@ -152,6 +159,23 @@ export default function MapsScreen() {
       clearInterval(touristFetchInterval);
     };
   }, [user?.token]);
+
+  // Handle route params to focus on a specific place
+  useEffect(() => {
+    if (params.focusLat && params.focusLon && mapRef.current) {
+      const lat = parseFloat(params.focusLat as string);
+      const lon = parseFloat(params.focusLon as string);
+      
+      setTimeout(() => {
+        mapRef.current?.animateToRegion({
+          latitude: lat,
+          longitude: lon,
+          latitudeDelta: 0.05,
+          longitudeDelta: 0.05,
+        }, MAP_ANIMATION_DURATION_MS);
+      }, MAP_FOCUS_DELAY_MS);
+    }
+  }, [params.focusLat, params.focusLon]);
   
   const centerOnUser = () => {
       if (location && mapRef.current) {
@@ -203,7 +227,7 @@ export default function MapsScreen() {
             key={`place-${place.id}`}
             coordinate={{ latitude: place.latitude, longitude: place.longitude }}
             title={`⭐ ${place.name}`}
-            description={place.description + (place.distance_km ? `\n${place.distance_km}km away` : '')}
+            description={`${place.description.substring(0, 100)}...\nCategory: ${place.category}`}
             pinColor="gold"
           />
         ))}

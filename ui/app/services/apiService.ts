@@ -6,7 +6,7 @@
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE || 'http://10.232.121.138:8000';
 
 interface ApiRequestOptions {
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: any;
   token?: string;
 }
@@ -342,6 +342,96 @@ class ApiService {
         distance_km?: number;
       }[]
     >(endpoint, {
+      token,
+    });
+  }
+
+  // Places CRUD operations
+  async getPlaces(category?: string, token?: string) {
+    let endpoint = '/places';
+    if (category) {
+      endpoint += `?category=${category}`;
+    }
+    return this.request<
+      {
+        id: number;
+        name: string;
+        description: string;
+        latitude: number;
+        longitude: number;
+        category: string;
+        image_url?: string;
+        is_active: boolean;
+        created_at: string;
+      }[]
+    >(endpoint, {
+      token,
+    });
+  }
+
+  async createPlace(
+    token: string,
+    name: string,
+    description: string,
+    latitude: number,
+    longitude: number,
+    category: string,
+    image_url?: string
+  ) {
+    return this.request<{
+      id: number;
+      name: string;
+      description: string;
+      latitude: number;
+      longitude: number;
+      category: string;
+      image_url?: string;
+      is_active: boolean;
+      created_at: string;
+    }>('/places', {
+      method: 'POST',
+      token,
+      body: { name, description, latitude, longitude, category, image_url },
+    });
+  }
+
+  async updatePlace(
+    token: string,
+    placeId: number,
+    updates: {
+      name?: string;
+      description?: string;
+      latitude?: number;
+      longitude?: number;
+      category?: string;
+      image_url?: string;
+      is_active?: boolean;
+    }
+  ) {
+    return this.request<{
+      id: number;
+      name: string;
+      description: string;
+      latitude: number;
+      longitude: number;
+      category: string;
+      image_url?: string;
+      is_active: boolean;
+      created_at: string;
+    }>(`/places/${placeId}`, {
+      method: 'PATCH',
+      token,
+      body: updates,
+    });
+  }
+
+  async deletePlace(token: string, placeId: number) {
+    return this.request<{
+      status: string;
+      message: string;
+      place_id: number;
+    }>(`/places/${placeId}`, {
+      method: 'DELETE',
       token,
     });
   }
