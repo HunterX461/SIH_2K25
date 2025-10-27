@@ -4,7 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { MapPin } from 'lucide-react-native';
 import { useTranslation } from '../hooks/useTranslation';
 
-const API_URL = process.env.EXPO_PUBLIC_API_BASE || 'http://10.232.121.138:8000';
+const API_URL = process.env.EXPO_PUBLIC_API_BASE || 'http://localhost:8000';
 
 interface Tourist {
   id: number;
