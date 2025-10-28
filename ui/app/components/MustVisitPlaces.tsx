@@ -11,7 +11,7 @@ type Place = {
   image_url?: string;
 };
 
-export default function MustVisitPlaces() {
+export function MustVisitPlaces() {
   const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -67,3 +67,5 @@ export default function MustVisitPlaces() {
     </section>
   );
 }
+
+export default MustVisitPlaces;
