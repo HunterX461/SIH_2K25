@@ -54,14 +54,16 @@ python3 seed.py
 
 ### Step 3: Configure Environment (Optional)
 
-Create a .env file in the ui/ directory if you need custom API endpoint:
+The default backend URL is `http://localhost:8000` for local development.
+
+If testing on a physical device or emulator on a different network, create or update the .env file in the ui/ directory:
 
 ```bash
 cd ui
 echo "EXPO_PUBLIC_API_BASE=http://YOUR_IP_ADDRESS:8000" > .env
 ```
 
-Default backend URL: http://10.232.121.138:8000
+Replace `YOUR_IP_ADDRESS` with your computer's local network IP (e.g., 192.168.1.x).
 
 ================================================================================
                             RUNNING THE APPLICATION
@@ -201,14 +203,15 @@ npm install --legacy-peer-deps
 
 Solution:
 1. Check if backend is running on port 8000
-2. Update API URL in ui/.env:
+2. For local development on the same machine, use `http://localhost:8000` (default)
+3. For testing on physical devices or remote emulators, update API URL in ui/.env:
    ```
    EXPO_PUBLIC_API_BASE=http://YOUR_COMPUTER_IP:8000
    ```
-3. Find your IP:
-   - macOS/Linux: `ifconfig | grep inet`
+4. Find your computer's local network IP:
+   - macOS/Linux: `ifconfig | grep inet` or `ip addr show`
    - Windows: `ipconfig`
-4. Use your local network IP (e.g., 192.168.1.x), not 127.0.0.1
+5. Use your local network IP (e.g., 192.168.1.x), not 127.0.0.1 when accessing from other devices
 
 ## Problem: Expo Go shows "Unable to resolve" error
 

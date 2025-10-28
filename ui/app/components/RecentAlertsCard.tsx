@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { TriangleAlert as AlertTriangle, Clock } from 'lucide-react-native';
+import { AlertTriangle, Clock } from 'lucide-react-native';
 import { useTranslation } from '../hooks/useTranslation';
 
 export function RecentAlertsCard() {

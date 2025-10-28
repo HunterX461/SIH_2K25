@@ -60,12 +60,12 @@ A comprehensive mobile application designed to enhance tourist safety through re
 2. **Environment Configuration**
    The `.env` file contains the backend API configuration:
    ```
-   EXPO_PUBLIC_API_BASE=http://10.232.121.138:8000
+   EXPO_PUBLIC_API_BASE=http://localhost:8000
    EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
    EXPO_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
    ```
    
-   Update `EXPO_PUBLIC_API_BASE` with your backend API URL to connect to a different server.
+   The default backend URL is `http://localhost:8000` for local development. If testing on a physical device or emulator on a different network, update `EXPO_PUBLIC_API_BASE` with your computer's local IP address (e.g., `http://192.168.1.x:8000`).
 
 3. **Run the Application**
    ```bash

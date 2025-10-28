@@ -14,7 +14,7 @@ export function QuickActionCard({ icon: Icon, title, subtitle, color, onPress }:
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
       <View style={[styles.iconContainer, { backgroundColor: `${color}15` }]}>
-        <Icon size={24} color={color} />
+        {Icon && <Icon size={24} color={color} />}
       </View>
       <View style={styles.content}>
         <Text style={styles.title}>{title}</Text>
