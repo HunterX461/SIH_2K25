@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, Alert, Linking } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { TriangleAlert as AlertTriangle, Phone, MessageSquare, Shield, Clock } from 'lucide-react-native';
+import { AlertTriangle, Phone, MessageSquare, Shield, Clock } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
 import { useTranslation } from '../hooks/useTranslation';
