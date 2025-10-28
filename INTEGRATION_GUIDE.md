@@ -223,7 +223,7 @@ npm run dev
 The application uses the `EXPO_PUBLIC_API_BASE` environment variable for the backend API URL.
 
 **Environment Variable:** `EXPO_PUBLIC_API_BASE`  
-**Default:** `http://10.232.121.138:8000`
+**Default:** `http://localhost:8000` (for local development)
 
 All API calls throughout the application use this environment variable:
 - `/ui/app/services/apiService.ts`: Uses `process.env.EXPO_PUBLIC_API_BASE`
@@ -235,6 +235,8 @@ To override for production or different environments, create a `.env` file in th
 ```env
 EXPO_PUBLIC_API_BASE=https://your-production-api.com
 ```
+
+For local development, the default is `http://localhost:8000`. If you need to test on a physical device or emulator on a different network, use your computer's local IP address (e.g., `http://192.168.1.x:8000`).
 
 This ensures all API calls use the correct backend URL without hardcoding.
 
