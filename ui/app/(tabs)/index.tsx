@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { MapPin, TriangleAlert as AlertTriangle, Users } from 'lucide-react-native';
+import { MapPin, AlertTriangle, Users } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useTranslation } from '../hooks/useTranslation';

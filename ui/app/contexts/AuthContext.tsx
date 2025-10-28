@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE || 'http://10.232.121.138:8000';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE || 'http://localhost:8000';
 
 interface User {
   id: number;
